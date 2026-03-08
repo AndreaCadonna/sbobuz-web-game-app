@@ -4,124 +4,76 @@
 - **Phase 2 Steps 2.1-2.10:** Complete (all server infrastructure)
 - **Phase 3 Steps 3.1-3.8:** Complete (middleware + auth module + handlers + routes + wiring)
 - **Phase 4 Steps 4.1-4.5:** Complete (lobby module)
-- **Branch:** `feature/phase-4-lobby-module`
-- **Total tests:** 1099 (629 Phase 1 + 195 Phase 2 + 160 Phase 3 + 115 Phase 4)
-- **Next:** Phase 4 complete, ready for Phase 5 (Realtime + Game Session + Leaderboard)
+- **Phase 5 Steps 5.1-5.8:** Complete (realtime + game session + leaderboard + wiring)
+- **Branch:** `feature/phase-5-realtime-module`
+- **Total tests:** 1305 (629 Phase 1 + 195 Phase 2 + 160 Phase 3 + 115 Phase 4 + 206 Phase 5)
+- **Next:** Phase 6 (AI Opponent Module)
 
-## Phase 3 Files Created
+## Phase 5 Files (Steps 5.5-5.8)
 
-### Step 3.1 - Middleware Pipeline (63 tests)
-- `server/src/shared/middleware/request-id.ts` - UUIDv4 requestId, AsyncLocalStorage context (7 tests)
-- `server/src/shared/middleware/cors.ts` - Config-driven CORS wrapper (5 tests)
-- `server/src/shared/middleware/rate-limiter.ts` - Redis sorted set sliding window (11 tests)
-- `server/src/shared/middleware/auth-middleware.ts` - JWT HS256 verification, Express.Request augmentation (13 tests)
-- `server/src/shared/middleware/error-handler.ts` - Global 4-arg error handler, ApiErrorResponse format (15 tests)
-- `server/src/shared/middleware/validation.ts` - Zod validateBody/Query/Params factories (12 tests)
+### Step 5.5 - Game Session Manager (30 tests)
+- `server/src/modules/game-engine/session-manager.ts` - Bridges pure engine with I/O
+- `server/src/modules/game-engine/session-manager.test.ts`
 
-### Steps 3.2-3.4 - Auth Module (54 tests)
-- `server/src/modules/auth/auth.types.ts` - User, Session, RefreshToken, DeviceInfo interfaces
-- `server/src/modules/auth/repository.ts` - createUser (transaction), findUser*, userExists* (19 tests)
-- `server/src/modules/auth/token-service.ts` - JWT generate/verify, refresh token CRUD in Redis (17 tests)
-- `server/src/modules/auth/session-service.ts` - Session CRUD in Redis, user_sessions SET tracking (18 tests)
+### Step 5.6 - Leaderboard Module (40 tests)
+- `server/src/modules/leaderboard/leaderboard.types.ts` - Types
+- `server/src/modules/leaderboard/rating-service.ts` - Pure ELO (K=40/20/10)
+- `server/src/modules/leaderboard/repository.ts` - PostgreSQL for ratings/match_results
+- `server/src/modules/leaderboard/leaderboard-service.ts` - Orchestration
+- `server/src/modules/leaderboard/routes.ts` - REST: GET /, /me, /nearby, /history
+- `server/src/modules/leaderboard/index.ts` - Barrel
 
-### Steps 3.5-3.8 - Handlers, Routes, Wiring (43 tests)
-- `server/src/modules/auth/schemas.ts` - Zod registerSchema, loginSchema with reserved usernames
-- `server/src/modules/auth/handlers.ts` - register, login, refresh, logout, me handlers
-- `server/src/modules/auth/routes.ts` - Express router with rate limiters + asyncHandler
-- `server/src/modules/auth/handlers.test.ts` - 43 tests covering all flows
-- Updated `server/src/server.ts` - cookie-parser, auth routes at /api/v1/auth, error handler, ApiErrorResponse 404
+### Step 5.7 - Integration Tests (25 tests)
+- `server/src/modules/game-engine/__tests__/game-flow-integration.test.ts`
 
-## Phase 4 Files Created
+### Step 5.8 - Server Wiring
+- Updated `server/src/server.ts` with Socket.IO, leaderboard routes, game session provider, shutdown
 
-### Step 4.1 - Room Repository
-- `server/src/modules/lobby/room-repository.ts` - Redis CRUD (saveRoom, getRoom, deleteRoom, listPublicRooms), PG archival
+## Game Session Manager Patterns
+- `createGameSession(roomId, playerIds, config, seed?)` -> `{ gameId, state }`
+- `applyAction(gameId, action)` -> `ProcessActionResult`
+- `createGameSessionProvider()` -> `GameSessionProvider` interface
+- Redis keys: `game:snapshot:{gameId}`, `game:room:{roomId}`
+- Turn timers: `setTimeout.unref()`, auto TIMEOUT_FORFEIT on expiry
+- Completion: persists to `games` + `game_actions` tables, cleans Redis after 60s
+- `broadcastStateToRoom/broadcastGameStarted` — per-player sanitized via fetchSockets
 
-### Step 4.2 - Room Service
-- `server/src/modules/lobby/room-service.ts` - createRoom, joinRoom, leaveRoom, setReady, startGame, addAIPlayer, removePlayer, updateSettings
-- `server/src/modules/lobby/lobby.types.ts` - Room, CreateRoomInput, RoomArchive, RoomListItem, computeRoomStatus, toRoomState
+## Leaderboard / ELO
+- Initial=1200, min=100, K: 40(0-29), 20(30-99), 10(100+)
+- AI players (`ai_*` prefix) skipped in rating calculations
+- REST at `/api/v1/leaderboard` with auth middleware
 
-### Step 4.3 - Handlers, Schemas, Routes
-- `server/src/modules/lobby/schemas.ts` - Zod schemas for all endpoints
-- `server/src/modules/lobby/handlers.ts` - 10 route handlers
-- `server/src/modules/lobby/routes.ts` - Express router at /api/v1/lobby
+## Server Shutdown Sequence
+1. `shutdownRealtimeModule(io)` 2. `snapshotAllSessions()` 3. `closeSocketIOServer()`
+4. `httpServer.close()` 5. `resetSessionManager()` 6. `closePool()` 7. `closeRedisClients()`
 
-### Step 4.4 - Tests (115 tests)
-- `server/src/modules/lobby/lobby.types.test.ts` - 14 tests (computeRoomStatus, toRoomState, constants)
-- `server/src/modules/lobby/room-service.test.ts` - 56 tests (all service operations + edge cases)
-- `server/src/modules/lobby/handlers.test.ts` - 12 tests (handler delegation)
-- `server/src/modules/lobby/schemas.test.ts` - 33 tests (all Zod schemas)
+## Phase 5 Files (Steps 5.1-5.4) - 111 tests
+- `server/src/infra/websocket/` - types, setup, auth-middleware, rate-limiter
+- `server/src/modules/realtime/` - connection-manager, presence-manager, handlers/, index
 
-### Step 4.5 - Server Wiring
-- Updated `server/src/server.ts` - lobby routes at /api/v1/lobby
-- Updated `server/src/shared/errors/errors.ts` - AuthorizationError accepts ROOM_NOT_HOST
+## Key Interfaces
+- `GameSessionProvider` defined in `game-events.ts`, NOT `types.ts`
+- `LegalMoveSet.all` (not `.actions`) for total legal moves
+- `TypedSocketIOServer` from `setup.ts`, `TypedSocket` from `types.ts`
 
-## Phase 2 Files Created
-
-### Steps 2.1-2.6 (config, logger, errors, db, migrator, redis)
-- `server/src/shared/config/schema.ts`, `index.ts`, `config.test.ts` (41 tests)
-- `server/src/shared/context.ts`, `server/src/shared/logger.ts`, `logger.test.ts` (20 tests)
-- `server/src/shared/errors/app-error.ts`, `errors.ts`, `index.ts`, `errors.test.ts` (42 tests)
-- `server/src/infra/database/pool.ts`, `index.ts`, `pool.test.ts` (23 tests)
-- `server/src/infra/database/migrator.ts`, `migrator.test.ts` (17 tests), `migrations/001-008*.sql`
-- `server/src/infra/redis/client.ts`, `index.ts`, `client.test.ts` (34 tests)
-
-### Steps 2.7-2.10
-- `server/src/shared/middleware/health.ts` + test (18 tests)
-- `server/src/server.ts` - Express composition root
-- `docker-compose.yml`, `infra/docker/Dockerfile`
-
-## Key Patterns
-
-### Config
-- `loadConfig(env?)` validates+freezes, `getConfig()` returns singleton, `resetConfig()` for tests
-- Boolean env vars: `z.enum(['true','false']).transform()` pattern
-
-### Auth Middleware
-- `createAuthMiddleware(jwtSecret)` - required auth, returns 401 via next(err)
-- `optionalAuth(jwtSecret)` - attaches user if valid, proceeds regardless
-- Express.Request augmented with `userId?`, `username?`, `userEmail?`, `sessionId?` via global declaration
-
-### Rate Limiter
-- `createRateLimiter(options)` factory, supports per-endpoint overrides
-- Redis pipeline: ZREMRANGEBYSCORE + ZCARD + ZADD + PEXPIRE
-- Fails open on Redis errors (logs warning, allows request)
-
-### Token Service
-- `generateAccessToken(payload)` includes `sessionId` in JWT claims
-- `verifyAccessToken(token)` returns `DecodedAccessToken` with `sessionId`
-- `generateRefreshToken(userId, sessionId)` stores in Redis as `refresh:{tokenId}`
-- `rotateRefreshToken` marks old as used, creates new
-- `revokeAllRefreshTokensForUser` uses SCAN (expensive, used sparingly)
-
-### Session Service
-- `createSession(userId, deviceInfo)` stores JSON at `session:{sessionId}`, adds to `user_sessions:{userId}` SET
-- `revokeSession` sets isRevoked=true, keeps in Redis for audit
-- `revokeAllSessions` iterates SMEMBERS, revokes each, DELs the set
-
-### DB Schema (credentials table)
-- Has `id`, `user_id`, `password_hash`, `refresh_token_hash`, `password_changed_at`, etc.
-- The credentials table has its own UUID PK plus user_id FK (not user_id as PK)
-
-### Lobby Module
-- Redis keys: `room:{roomId}` (JSON), `room:invite:{inviteCode}` -> roomId, `room:public_list` (SET), `user:current_room:{userId}` -> roomId
-- All keys TTL = 1800s (30min), refreshed on activity
-- `saveRoom()` uses pipeline for atomicity (set room + invite + user keys + public list)
-- `computeRoomStatus()` ignores AI players for ready calculation
-- Host transfer: earliest-joined human player becomes host
-- Zod schema `maxPlayers` infers as `number` but `RoomSettings.maxPlayers` is `2|3|4|5` — use `as Partial<RoomSettings>` cast in handlers
-- Rate limiter keyBy accepts `'ip' | 'userId'` (not `'user'`)
-
-## Dependencies
-- Phase 2: `zod`, `pino`, `pino-pretty`, `pg`, `@types/pg`, `ioredis`, `express` (v5), `cors`, `tsx`
-- Phase 3: `jsonwebtoken`, `@types/jsonwebtoken`, `bcryptjs`, `@types/bcryptjs`, `cookie-parser`, `@types/cookie-parser`
-
-## TypeScript Gotchas
-- `exactOptionalPropertyTypes: true` requires `| undefined` on optional params
-- Server uses `module: "ES2022"` with `moduleResolution: "bundler"`
-- Express.Request type augmentation via `declare global { namespace Express { ... } }`
+## Config
+- `loadConfig(env?)` validates+freezes, `getConfig()` singleton, `resetConfig()` for tests
+- Game config: `turnTimerSeconds` must be >0 (state-factory validates)
 
 ## Testing Gotchas
-- `vi.mock()` factories are hoisted -- use `vi.hoisted()` for variables referenced inside
-- For async module imports after mocks: `const { fn } = await import('./module.js')`
-- Mock Redis store pattern: plain object + vi.fn() implementing get/set/del/sadd/smembers
-- `pg` mock: `{ default: { Pool: MockPool } }`; `ioredis` mock: `{ default: MockRedis }`
+- `vi.mock()` hoisted — use `vi.hoisted()` for variables in mock factories
+- Mock Redis: plain object store + vi.fn()
+- Zod v4 `z.uuid()` rejects `00000000-...` — use `randomUUID()` in tests
+- No `supertest` — use Node `fetch` + `createServer(app).listen(0)` for route tests
+- PICK_UP_PILE needs non-empty pile — use PLAY_CARDS for first action in tests
+- `pg` mock: `{ default: { Pool } }`; `ioredis` mock: `{ default: MockRedis }`
+
+## Dependencies
+- Phase 2: `zod`, `pino`, `pino-pretty`, `pg`, `ioredis`, `express` v5, `cors`, `tsx`
+- Phase 3: `jsonwebtoken`, `bcryptjs`, `cookie-parser` (+ @types)
+- Phase 5: `socket.io`, `@socket.io/redis-adapter`
+
+## TypeScript
+- `exactOptionalPropertyTypes: true` — optional props need `| undefined`
+- `module: "ES2022"`, `moduleResolution: "bundler"`
+- Express.Request augmented via `declare global { namespace Express }`

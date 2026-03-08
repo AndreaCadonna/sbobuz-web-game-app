@@ -17,10 +17,14 @@ import type { ApiErrorResponse } from '@sbobuz/shared';
 
 import { createPool, closePool, runMigrations, getPool } from './infra/database/index.js';
 import { createRedisClients, closeRedisClients } from './infra/redis/index.js';
+import { createSocketIOServer, closeSocketIOServer } from './infra/websocket/setup.js';
 import { loadConfig, type ServerConfig } from './shared/config/index.js';
 import { runWithContext, generateRequestId, generateTraceId, generateSpanId } from './shared/context.js';
 import { createAuthRouter } from './modules/auth/routes.js';
 import { createLobbyRouter } from './modules/lobby/routes.js';
+import { createLeaderboardRouter } from './modules/leaderboard/routes.js';
+import { initializeRealtimeModule, shutdownRealtimeModule, setGameSessionProvider } from './modules/realtime/index.js';
+import { createGameSessionProvider, snapshotAllSessions, resetSessionManager } from './modules/game-engine/session-manager.js';
 import { initLogger, createModuleLogger } from './shared/logger.js';
 import { errorHandler } from './shared/middleware/error-handler.js';
 import { createHealthRouter } from './shared/middleware/health.js';
@@ -90,6 +94,7 @@ export function createApp(config: ServerConfig): Express {
   // --- API routes ---
   app.use('/api/v1/auth', createAuthRouter());
   app.use('/api/v1/lobby', createLobbyRouter());
+  app.use('/api/v1/leaderboard', createLeaderboardRouter());
 
   // --- 404 handler ---
   app.use((_req: Request, res: Response): void => {
@@ -150,6 +155,19 @@ export async function startServer(): Promise<{ server: Server; config: ServerCon
   // 7. Create HTTP server and listen
   const httpServer = createServer(app);
 
+  // 8. Create Socket.IO server and attach to HTTP server
+  const io = createSocketIOServer(httpServer, config);
+  logger.info('Socket.IO server created');
+
+  // 9. Initialize game session manager and wire into realtime module
+  const gameSessionProvider = createGameSessionProvider();
+  setGameSessionProvider(gameSessionProvider);
+  logger.info('Game session manager wired to realtime module');
+
+  // 10. Initialize realtime module (registers event handlers, starts heartbeat)
+  initializeRealtimeModule(io);
+  logger.info('Realtime module initialized');
+
   await new Promise<void>((resolve) => {
     httpServer.listen(config.PORT, config.HOST, () => {
       logger.info(
@@ -160,8 +178,8 @@ export async function startServer(): Promise<{ server: Server; config: ServerCon
     });
   });
 
-  // 8. Register graceful shutdown handlers
-  const shutdown = createShutdownHandler(httpServer, logger);
+  // 11. Register graceful shutdown handlers
+  const shutdown = createShutdownHandler(httpServer, io, logger);
 
   process.on('SIGTERM', () => {
     logger.info('Received SIGTERM, starting graceful shutdown');
@@ -180,13 +198,17 @@ export async function startServer(): Promise<{ server: Server; config: ServerCon
  * Create a shutdown handler that drains connections and closes resources.
  *
  * The handler:
- * 1. Stops accepting new connections
- * 2. Closes the database pool (with drain timeout)
- * 3. Closes Redis clients
- * 4. Exits with code 0
+ * 1. Shuts down the realtime module (notifies clients)
+ * 2. Snapshots all active game sessions to Redis
+ * 3. Closes the Socket.IO server
+ * 4. Stops accepting new HTTP connections
+ * 5. Closes the database pool
+ * 6. Closes Redis clients
+ * 7. Exits with code 0
  */
 function createShutdownHandler(
   httpServer: Server,
+  io: ReturnType<typeof createSocketIOServer>,
   logger: ReturnType<typeof createModuleLogger>,
 ): () => Promise<void> {
   let isShuttingDown = false;
@@ -200,7 +222,31 @@ function createShutdownHandler(
 
     logger.info('Graceful shutdown initiated');
 
-    // 1. Stop accepting new connections
+    // 1. Shut down realtime module (emits server:draining to clients)
+    try {
+      shutdownRealtimeModule(io);
+      logger.info('Realtime module shut down');
+    } catch (err) {
+      logger.error({ err }, 'Error shutting down realtime module');
+    }
+
+    // 2. Snapshot all active game sessions to Redis for crash recovery
+    try {
+      await snapshotAllSessions();
+      logger.info('Game sessions snapshotted');
+    } catch (err) {
+      logger.error({ err }, 'Error snapshotting game sessions');
+    }
+
+    // 3. Close Socket.IO server
+    try {
+      await closeSocketIOServer();
+      logger.info('Socket.IO server closed');
+    } catch (err) {
+      logger.error({ err }, 'Error closing Socket.IO server');
+    }
+
+    // 4. Stop accepting new HTTP connections
     await new Promise<void>((resolve) => {
       httpServer.close((err) => {
         if (err) {
@@ -212,7 +258,10 @@ function createShutdownHandler(
       });
     });
 
-    // 2. Close database pool
+    // 5. Clean up game session manager
+    resetSessionManager();
+
+    // 6. Close database pool
     try {
       await closePool();
       logger.info('Database pool closed');
@@ -220,7 +269,7 @@ function createShutdownHandler(
       logger.error({ err }, 'Error closing database pool');
     }
 
-    // 3. Close Redis clients
+    // 7. Close Redis clients
     try {
       await closeRedisClients();
       logger.info('Redis clients closed');
