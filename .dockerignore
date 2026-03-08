@@ -1,0 +1,17 @@
+node_modules
+**/node_modules
+.git
+.github
+docs
+observability
+infra/terraform
+**/*.test.ts
+**/__tests__
+.env
+.env.*
+*.md
+.vscode
+.idea
+coverage
+**/dist
+.claude

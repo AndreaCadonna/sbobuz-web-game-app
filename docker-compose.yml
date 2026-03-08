@@ -1,0 +1,134 @@
+# Docker Compose for Sbobuz local development.
+#
+# Usage:
+#   docker-compose up                  # Start everything
+#   docker-compose up postgres redis   # Start only data services
+#   docker-compose down -v             # Stop and wipe all data
+#
+# @see docs/specs/infrastructure-deployment.md Section 4
+
+services:
+  # ---- Application ----
+  app:
+    build:
+      context: .
+      dockerfile: infra/docker/Dockerfile
+    ports:
+      - "3000:3000"
+      - "9464:9464"
+    volumes:
+      - ./server:/app/server
+      - ./shared:/app/shared
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      PORT: "3000"
+      HOST: "0.0.0.0"
+      LOG_LEVEL: debug
+      DATABASE_URL: postgresql://sbobuz:localdev@postgres:5432/sbobuz
+      DB_POOL_MIN: "2"
+      DB_POOL_MAX: "10"
+      DB_STATEMENT_TIMEOUT_MS: "30000"
+      MIGRATE_ON_STARTUP: "true"
+      REDIS_URL: redis://redis:6379
+      REDIS_COMMAND_TIMEOUT_MS: "2000"
+      JWT_SECRET: local-development-secret-must-be-at-least-32-chars
+      JWT_ACCESS_TOKEN_TTL_SECONDS: "900"
+      JWT_REFRESH_TOKEN_TTL_SECONDS: "604800"
+      BCRYPT_COST_FACTOR: "12"
+      RATE_LIMIT_WINDOW_MS: "60000"
+      RATE_LIMIT_MAX_REQUESTS: "100"
+      DEFAULT_TURN_TIMER_SECONDS: "60"
+      DEFAULT_DISCONNECT_GRACE_SECONDS: "30"
+      MAX_GAMES_PER_INSTANCE: "200"
+      GAME_SNAPSHOT_INTERVAL_ACTIONS: "10"
+      GAME_SNAPSHOT_INTERVAL_SECONDS: "30"
+      WS_PING_INTERVAL_MS: "25000"
+      WS_PING_TIMEOUT_MS: "5000"
+      WS_MAX_PAYLOAD_BYTES: "16384"
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4317
+      OTEL_TRACE_SAMPLING_RATE: "1.0"
+      METRICS_PORT: "9464"
+      CORS_ALLOWED_ORIGINS: "http://localhost:3001"
+      ENABLE_AI_OPPONENT: "true"
+      ENABLE_MATCHMAKING: "false"
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  # ---- Data Services ----
+  postgres:
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: sbobuz
+      POSTGRES_USER: sbobuz
+      POSTGRES_PASSWORD: localdev
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sbobuz -d sbobuz"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
+
+  # ---- Observability ----
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "4000:3000"
+    volumes:
+      - grafanadata:/var/lib/grafana
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+    depends_on:
+      - prometheus
+      - jaeger
+      - loki
+
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    ports:
+      - "16686:16686"
+      - "4317:4317"
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+
+  loki:
+    image: grafana/loki:latest
+    ports:
+      - "3100:3100"
+
+volumes:
+  pgdata:
+  grafanadata:
