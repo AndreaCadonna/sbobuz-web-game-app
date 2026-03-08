@@ -1,0 +1,12 @@
+# Prometheus configuration for local development.
+# Scrapes the sbobuz-server metrics endpoint.
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: "sbobuz-server"
+    static_configs:
+      - targets: ["app:9464"]
+    metrics_path: /metrics
