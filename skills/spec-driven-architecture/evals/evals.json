@@ -1,0 +1,23 @@
+{
+  "skill_name": "spec-driven-architecture",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "I need to add a leaderboard module to my card game platform. It should track ELO ratings, show rankings, and handle rating updates after each match. Can you write the spec for this module before we build it?",
+      "expected_output": "A complete module spec following the spec-driven template: header with status, overview, typed data model (ELO types, match result types), behavior rules for rating calculation, state transitions, validation rules, integration points with the game engine, edge cases table (ties, disconnects, rating floor), and resolved design decisions.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "We want to build a notification system that alerts players when it's their turn, when they get invited to a room, and when a friend comes online. Let's define the architecture for this before coding.",
+      "expected_output": "An architecture spec with: notification event types as discriminated unions, delivery channel strategy (WebSocket push, email fallback), data model for notification preferences and delivery state, behavior rules for deduplication and batching, edge cases around offline users and reconnection, integration points with lobby/realtime/auth modules, and design decisions about persistence vs ephemeral notifications.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "I'm building a matchmaking queue where players can join and get automatically paired based on their skill level. Design the spec for this.",
+      "expected_output": "A spec covering: queue data model with player entries and match criteria, state machine (queued → matching → matched → expired), matching algorithm rules (ELO range, wait time expansion), validation rules for join/leave actions, edge cases (player disconnects mid-match, no opponents available, skill range expansion over time), integration with lobby module, and resolved decisions on queue TTL and match acceptance flow.",
+      "files": []
+    }
+  ]
+}

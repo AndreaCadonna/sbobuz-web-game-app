@@ -1,0 +1,59 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Build output
+dist/
+build/
+*.tsbuildinfo
+
+# Next.js
+app/.next/
+app/out/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Coverage
+coverage/
+.nyc_output/
+
+# Docker volumes
+docker-data/
+pgdata/
+redisdata/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Testing
+*.lcov
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+
+# Misc
+*.tgz
+.cache/
