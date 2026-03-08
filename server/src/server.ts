@@ -9,14 +9,19 @@
 
 import { createServer, type Server } from 'node:http';
 
+import cookieParser from 'cookie-parser';
 import cors from 'cors';
 import express, { type Express, type Request, type Response, type NextFunction } from 'express';
+
+import type { ApiErrorResponse } from '@sbobuz/shared';
 
 import { createPool, closePool, runMigrations, getPool } from './infra/database/index.js';
 import { createRedisClients, closeRedisClients } from './infra/redis/index.js';
 import { loadConfig, type ServerConfig } from './shared/config/index.js';
 import { runWithContext, generateRequestId, generateTraceId, generateSpanId } from './shared/context.js';
+import { createAuthRouter } from './modules/auth/routes.js';
 import { initLogger, createModuleLogger } from './shared/logger.js';
+import { errorHandler } from './shared/middleware/error-handler.js';
 import { createHealthRouter } from './shared/middleware/health.js';
 
 /**
@@ -33,6 +38,7 @@ export function createApp(config: ServerConfig): Express {
 
   // --- Security & parsing middleware ---
   app.use(express.json({ limit: '16kb' }));
+  app.use(cookieParser());
   app.use(
     cors({
       origin: config.CORS_ALLOWED_ORIGINS.split(',').map((o) => o.trim()),
@@ -80,14 +86,25 @@ export function createApp(config: ServerConfig): Express {
   // --- Health check routes (no auth required) ---
   app.use('/health', createHealthRouter());
 
+  // --- API routes ---
+  app.use('/api/v1/auth', createAuthRouter());
+
   // --- 404 handler ---
   app.use((_req: Request, res: Response): void => {
-    res.status(404).json({
-      error: 'Not Found',
-      message: 'The requested resource does not exist',
-      timestamp: new Date().toISOString(),
-    });
+    const body: ApiErrorResponse = {
+      success: false,
+      error: {
+        code: 'NOT_FOUND',
+        message: 'The requested resource does not exist',
+        requestId: (res.getHeader('X-Request-Id') as string | undefined) ?? '',
+        timestamp: new Date().toISOString(),
+      },
+    };
+    res.status(404).json(body);
   });
+
+  // --- Global error handler (must be last) ---
+  app.use(errorHandler);
 
   return app;
 }

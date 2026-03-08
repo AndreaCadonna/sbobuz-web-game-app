@@ -2,9 +2,33 @@
 
 ## Current Progress
 - **Phase 2 Steps 2.1-2.10:** Complete (all server infrastructure)
-- **Branch:** `feature/phase-2-server-infrastructure`
-- **Total tests:** 824 (629 Phase 1 + 195 Phase 2)
-- **Next:** Phase 3 (Auth Module + API Gateway)
+- **Phase 3 Steps 3.1-3.8:** Complete (middleware + auth module + handlers + routes + wiring)
+- **Branch:** `feature/phase-3-auth-gateway`
+- **Total tests:** 984 (629 Phase 1 + 195 Phase 2 + 160 Phase 3)
+- **Next:** Phase 3 complete, ready for integration testing or Phase 4
+
+## Phase 3 Files Created
+
+### Step 3.1 - Middleware Pipeline (63 tests)
+- `server/src/shared/middleware/request-id.ts` - UUIDv4 requestId, AsyncLocalStorage context (7 tests)
+- `server/src/shared/middleware/cors.ts` - Config-driven CORS wrapper (5 tests)
+- `server/src/shared/middleware/rate-limiter.ts` - Redis sorted set sliding window (11 tests)
+- `server/src/shared/middleware/auth-middleware.ts` - JWT HS256 verification, Express.Request augmentation (13 tests)
+- `server/src/shared/middleware/error-handler.ts` - Global 4-arg error handler, ApiErrorResponse format (15 tests)
+- `server/src/shared/middleware/validation.ts` - Zod validateBody/Query/Params factories (12 tests)
+
+### Steps 3.2-3.4 - Auth Module (54 tests)
+- `server/src/modules/auth/auth.types.ts` - User, Session, RefreshToken, DeviceInfo interfaces
+- `server/src/modules/auth/repository.ts` - createUser (transaction), findUser*, userExists* (19 tests)
+- `server/src/modules/auth/token-service.ts` - JWT generate/verify, refresh token CRUD in Redis (17 tests)
+- `server/src/modules/auth/session-service.ts` - Session CRUD in Redis, user_sessions SET tracking (18 tests)
+
+### Steps 3.5-3.8 - Handlers, Routes, Wiring (43 tests)
+- `server/src/modules/auth/schemas.ts` - Zod registerSchema, loginSchema with reserved usernames
+- `server/src/modules/auth/handlers.ts` - register, login, refresh, logout, me handlers
+- `server/src/modules/auth/routes.ts` - Express router with rate limiters + asyncHandler
+- `server/src/modules/auth/handlers.test.ts` - 43 tests covering all flows
+- Updated `server/src/server.ts` - cookie-parser, auth routes at /api/v1/auth, error handler, ApiErrorResponse 404
 
 ## Phase 2 Files Created
 
@@ -16,21 +40,10 @@
 - `server/src/infra/database/migrator.ts`, `migrator.test.ts` (17 tests), `migrations/001-008*.sql`
 - `server/src/infra/redis/client.ts`, `index.ts`, `client.test.ts` (34 tests)
 
-### Step 2.7 - Health Check Endpoints
-- `server/src/shared/middleware/health.ts` - Express router: /live, /ready, /capacity
-- `server/src/shared/middleware/health.test.ts` - 18 tests
-
-### Step 2.8 - Express Server Composition Root
-- `server/src/server.ts` - Express app, HTTP server, graceful shutdown
-- `createApp(config)` exportable for testing, `startServer()` for full init
-
-### Step 2.9 - Docker Compose
-- `docker-compose.yml` - postgres:16, redis:7, app, grafana, prometheus, jaeger, loki
-- `infra/docker/Dockerfile` - 3-stage build (deps, build, production)
-- `.dockerignore`, `observability/prometheus/prometheus.yml`
-
-### Step 2.10 - npm Scripts
-- Root `package.json`: added `start`, `format:fix`
+### Steps 2.7-2.10
+- `server/src/shared/middleware/health.ts` + test (18 tests)
+- `server/src/server.ts` - Express composition root
+- `docker-compose.yml`, `infra/docker/Dockerfile`
 
 ## Key Patterns
 
@@ -38,29 +51,43 @@
 - `loadConfig(env?)` validates+freezes, `getConfig()` returns singleton, `resetConfig()` for tests
 - Boolean env vars: `z.enum(['true','false']).transform()` pattern
 
-### Server Composition
-- `createApp(config)` returns Express app (testable without HTTP listen)
-- `startServer()`: config -> logger -> db pool -> migrations? -> redis -> listen
-- Graceful shutdown: stop HTTP -> close pool -> close redis -> exit(0)
-- Request context middleware: requestId/traceId via AsyncLocalStorage
-- Express 5 is used (v5.2.1)
+### Auth Middleware
+- `createAuthMiddleware(jwtSecret)` - required auth, returns 401 via next(err)
+- `optionalAuth(jwtSecret)` - attaches user if valid, proceeds regardless
+- Express.Request augmented with `userId?`, `username?`, `userEmail?`, `sessionId?` via global declaration
 
-### Health Checks
-- `createHealthRouter()` -> mount at `/health`
-- /ready: 503 if DB or Redis down or latency > 5000ms
-- /capacity: placeholder activeGames=0 until game session module built
+### Rate Limiter
+- `createRateLimiter(options)` factory, supports per-endpoint overrides
+- Redis pipeline: ZREMRANGEBYSCORE + ZCARD + ZADD + PEXPIRE
+- Fails open on Redis errors (logs warning, allows request)
+
+### Token Service
+- `generateAccessToken(payload)` includes `sessionId` in JWT claims
+- `verifyAccessToken(token)` returns `DecodedAccessToken` with `sessionId`
+- `generateRefreshToken(userId, sessionId)` stores in Redis as `refresh:{tokenId}`
+- `rotateRefreshToken` marks old as used, creates new
+- `revokeAllRefreshTokensForUser` uses SCAN (expensive, used sparingly)
+
+### Session Service
+- `createSession(userId, deviceInfo)` stores JSON at `session:{sessionId}`, adds to `user_sessions:{userId}` SET
+- `revokeSession` sets isRevoked=true, keeps in Redis for audit
+- `revokeAllSessions` iterates SMEMBERS, revokes each, DELs the set
+
+### DB Schema (credentials table)
+- Has `id`, `user_id`, `password_hash`, `refresh_token_hash`, `password_changed_at`, etc.
+- The credentials table has its own UUID PK plus user_id FK (not user_id as PK)
 
 ## Dependencies
-- `zod`, `pino`, `pino-pretty`, `pg`, `@types/pg`, `ioredis`
-- `express` (v5), `@types/express`, `cors`, `@types/cors`, `tsx`
+- Phase 2: `zod`, `pino`, `pino-pretty`, `pg`, `@types/pg`, `ioredis`, `express` (v5), `cors`, `tsx`
+- Phase 3: `jsonwebtoken`, `@types/jsonwebtoken`, `bcryptjs`, `@types/bcryptjs`, `cookie-parser`, `@types/cookie-parser`
 
 ## TypeScript Gotchas
 - `exactOptionalPropertyTypes: true` requires `| undefined` on optional params
 - Server uses `module: "ES2022"` with `moduleResolution: "bundler"`
-- ioredis: import `RedisOptions` type separately
+- Express.Request type augmentation via `declare global { namespace Express { ... } }`
 
 ## Testing Gotchas
 - `vi.mock()` factories are hoisted -- use `vi.hoisted()` for variables referenced inside
-- On Windows/WSL, `rmSync` can throw EIO on temp dirs during parallel tests
+- For async module imports after mocks: `const { fn } = await import('./module.js')`
+- Mock Redis store pattern: plain object + vi.fn() implementing get/set/del/sadd/smembers
 - `pg` mock: `{ default: { Pool: MockPool } }`; `ioredis` mock: `{ default: MockRedis }`
-- Complex inline type assertions break esbuild -- use separate interface declarations
