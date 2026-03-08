@@ -3,9 +3,10 @@
 ## Current Progress
 - **Phase 2 Steps 2.1-2.10:** Complete (all server infrastructure)
 - **Phase 3 Steps 3.1-3.8:** Complete (middleware + auth module + handlers + routes + wiring)
-- **Branch:** `feature/phase-3-auth-gateway`
-- **Total tests:** 984 (629 Phase 1 + 195 Phase 2 + 160 Phase 3)
-- **Next:** Phase 3 complete, ready for integration testing or Phase 4
+- **Phase 4 Steps 4.1-4.5:** Complete (lobby module)
+- **Branch:** `feature/phase-4-lobby-module`
+- **Total tests:** 1099 (629 Phase 1 + 195 Phase 2 + 160 Phase 3 + 115 Phase 4)
+- **Next:** Phase 4 complete, ready for Phase 5 (Realtime + Game Session + Leaderboard)
 
 ## Phase 3 Files Created
 
@@ -29,6 +30,30 @@
 - `server/src/modules/auth/routes.ts` - Express router with rate limiters + asyncHandler
 - `server/src/modules/auth/handlers.test.ts` - 43 tests covering all flows
 - Updated `server/src/server.ts` - cookie-parser, auth routes at /api/v1/auth, error handler, ApiErrorResponse 404
+
+## Phase 4 Files Created
+
+### Step 4.1 - Room Repository
+- `server/src/modules/lobby/room-repository.ts` - Redis CRUD (saveRoom, getRoom, deleteRoom, listPublicRooms), PG archival
+
+### Step 4.2 - Room Service
+- `server/src/modules/lobby/room-service.ts` - createRoom, joinRoom, leaveRoom, setReady, startGame, addAIPlayer, removePlayer, updateSettings
+- `server/src/modules/lobby/lobby.types.ts` - Room, CreateRoomInput, RoomArchive, RoomListItem, computeRoomStatus, toRoomState
+
+### Step 4.3 - Handlers, Schemas, Routes
+- `server/src/modules/lobby/schemas.ts` - Zod schemas for all endpoints
+- `server/src/modules/lobby/handlers.ts` - 10 route handlers
+- `server/src/modules/lobby/routes.ts` - Express router at /api/v1/lobby
+
+### Step 4.4 - Tests (115 tests)
+- `server/src/modules/lobby/lobby.types.test.ts` - 14 tests (computeRoomStatus, toRoomState, constants)
+- `server/src/modules/lobby/room-service.test.ts` - 56 tests (all service operations + edge cases)
+- `server/src/modules/lobby/handlers.test.ts` - 12 tests (handler delegation)
+- `server/src/modules/lobby/schemas.test.ts` - 33 tests (all Zod schemas)
+
+### Step 4.5 - Server Wiring
+- Updated `server/src/server.ts` - lobby routes at /api/v1/lobby
+- Updated `server/src/shared/errors/errors.ts` - AuthorizationError accepts ROOM_NOT_HOST
 
 ## Phase 2 Files Created
 
@@ -76,6 +101,15 @@
 ### DB Schema (credentials table)
 - Has `id`, `user_id`, `password_hash`, `refresh_token_hash`, `password_changed_at`, etc.
 - The credentials table has its own UUID PK plus user_id FK (not user_id as PK)
+
+### Lobby Module
+- Redis keys: `room:{roomId}` (JSON), `room:invite:{inviteCode}` -> roomId, `room:public_list` (SET), `user:current_room:{userId}` -> roomId
+- All keys TTL = 1800s (30min), refreshed on activity
+- `saveRoom()` uses pipeline for atomicity (set room + invite + user keys + public list)
+- `computeRoomStatus()` ignores AI players for ready calculation
+- Host transfer: earliest-joined human player becomes host
+- Zod schema `maxPlayers` infers as `number` but `RoomSettings.maxPlayers` is `2|3|4|5` — use `as Partial<RoomSettings>` cast in handlers
+- Rate limiter keyBy accepts `'ip' | 'userId'` (not `'user'`)
 
 ## Dependencies
 - Phase 2: `zod`, `pino`, `pino-pretty`, `pg`, `@types/pg`, `ioredis`, `express` (v5), `cors`, `tsx`
