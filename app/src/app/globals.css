@@ -1,0 +1,74 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-background: #ffffff;
+  --color-foreground: #0f172a;
+  --color-muted: #64748b;
+  --color-border: #e2e8f0;
+  --color-card-bg: #f8fafc;
+  --color-success: #22c55e;
+  --color-warning: #f59e0b;
+  --color-error: #ef4444;
+  --color-info: #3b82f6;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-background: #0f172a;
+    --color-foreground: #f1f5f9;
+    --color-muted: #94a3b8;
+    --color-border: #334155;
+    --color-card-bg: #1e293b;
+  }
+}
+
+body {
+  color: var(--color-foreground);
+  background: var(--color-background);
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+
+@layer utilities {
+  .text-muted {
+    color: var(--color-muted);
+  }
+}
+
+/* Card play animation */
+@keyframes cardPlay {
+  0% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: translateY(-30px) scale(1.05);
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateY(-60px) scale(0.9);
+    opacity: 0;
+  }
+}
+
+@keyframes cardDeal {
+  0% {
+    transform: translateY(-20px) scale(0.8);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .animate-card-play {
+    animation: cardPlay 0.4s ease-out forwards;
+  }
+
+  .animate-card-deal {
+    animation: cardDeal 0.3s ease-out forwards;
+  }
+}
