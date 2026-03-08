@@ -1,0 +1,182 @@
+# CI Pipeline for Sbobuz
+#
+# Runs on every PR and push to main.
+# Jobs: lint-typecheck -> unit-tests -> integration-tests -> build-check (PR only)
+#
+# All jobs must pass before a PR can be merged.
+# Coverage thresholds: 80% branches, functions, lines, statements.
+
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  # Cancel in-flight CI for the same branch/PR to save runner minutes.
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # ------------------------------------------------------------------
+  # Job 1: Lint and Typecheck
+  # Target: < 2 minutes
+  # ESLint, tsc --noEmit, and Prettier run in parallel via &&.
+  # ------------------------------------------------------------------
+  lint-typecheck:
+    name: Lint & Typecheck
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Run TypeScript typecheck
+        run: npm run typecheck
+
+      - name: Run Prettier check
+        run: npm run format:check
+
+  # ------------------------------------------------------------------
+  # Job 2: Unit Tests
+  # Target: < 3 minutes
+  # No external dependencies (no DB, no Redis).
+  # Vitest with v8 coverage provider. Fails if below 80% thresholds.
+  # ------------------------------------------------------------------
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [lint-typecheck]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run unit tests with coverage
+        run: npm run test:coverage
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 14
+
+  # ------------------------------------------------------------------
+  # Job 3: Integration Tests
+  # Target: < 5 minutes
+  # Needs PostgreSQL 16 and Redis 7 service containers.
+  # Runs migrations before test execution.
+  # ------------------------------------------------------------------
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [lint-typecheck]
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: sbobuz_test
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U test -d sbobuz_test"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+          --health-start-period=10s
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    env:
+      # Application config for integration tests
+      NODE_ENV: test
+      DATABASE_URL: postgresql://test:test@localhost:5432/sbobuz_test
+      REDIS_URL: redis://localhost:6379
+      JWT_SECRET: integration-test-secret-must-be-at-least-32-characters-long
+      LOG_LEVEL: error
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run database migrations
+        run: npm run migrate
+
+      - name: Run integration tests
+        run: npm run test:integration
+
+  # ------------------------------------------------------------------
+  # Job 4: Build Check (PR only)
+  # Verifies the Docker image builds successfully without pushing.
+  # ------------------------------------------------------------------
+  build-check:
+    name: Build Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [unit-tests, integration-tests]
+    if: github.event_name == 'pull_request'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image (no push)
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: infra/docker/Dockerfile.production
+          push: false
+          tags: sbobuz-server:build-check
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

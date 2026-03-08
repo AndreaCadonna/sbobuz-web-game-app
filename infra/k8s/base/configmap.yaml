@@ -1,0 +1,65 @@
+# Non-secret configuration for the Sbobuz server.
+#
+# All values here are safe to store in version control.
+# Sensitive values (DATABASE_URL, REDIS_URL, JWT_SECRET, etc.)
+# are in the sbobuz-secrets Secret, managed externally via
+# sealed-secrets, SOPS, or a secrets manager.
+#
+# Overlays patch NODE_ENV and OTEL_TRACE_SAMPLING_RATE per environment.
+# All other values are shared across environments.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sbobuz-config
+  labels:
+    app: sbobuz-server
+    app.kubernetes.io/name: sbobuz-server
+    app.kubernetes.io/component: server
+    app.kubernetes.io/part-of: sbobuz
+data:
+  # --- Server ---
+  NODE_ENV: "production"
+  PORT: "3000"
+  HOST: "0.0.0.0"
+  LOG_LEVEL: "info"
+
+  # --- Database ---
+  # Connection pool sizing for a single pod. DB_POOL_MAX * max_replicas
+  # should not exceed the PostgreSQL max_connections limit.
+  DB_POOL_MIN: "2"
+  DB_POOL_MAX: "10"
+  DB_STATEMENT_TIMEOUT_MS: "30000"
+
+  # --- Redis ---
+  REDIS_COMMAND_TIMEOUT_MS: "2000"
+
+  # --- Auth ---
+  # Token TTLs and bcrypt cost (locked decision: cost factor 12).
+  JWT_ACCESS_TOKEN_TTL_SECONDS: "900"
+  JWT_REFRESH_TOKEN_TTL_SECONDS: "604800"
+  BCRYPT_COST_FACTOR: "12"
+
+  # --- Rate Limiting ---
+  RATE_LIMIT_WINDOW_MS: "60000"
+  RATE_LIMIT_MAX_REQUESTS: "100"
+
+  # --- Game ---
+  DEFAULT_TURN_TIMER_SECONDS: "60"
+  # 30s disconnect grace period (locked decision).
+  # Must match terminationGracePeriodSeconds in the Deployment.
+  DEFAULT_DISCONNECT_GRACE_SECONDS: "30"
+  MAX_GAMES_PER_INSTANCE: "200"
+
+  # --- WebSocket ---
+  WS_PING_INTERVAL_MS: "25000"
+  WS_PING_TIMEOUT_MS: "5000"
+
+  # --- Observability ---
+  # Sampling rate 0.1 = 10% of traces in production.
+  # Staging overlay overrides to 1.0 (100%) for debugging.
+  OTEL_TRACE_SAMPLING_RATE: "0.1"
+  METRICS_PORT: "9464"
+
+  # --- Feature Flags ---
+  ENABLE_AI_OPPONENT: "true"
+  ENABLE_MATCHMAKING: "false"

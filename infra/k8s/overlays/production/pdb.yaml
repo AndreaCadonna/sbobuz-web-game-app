@@ -1,0 +1,23 @@
+# Pod Disruption Budget for production.
+#
+# Ensures at least 1 pod remains available during voluntary disruptions
+# (node drains, cluster upgrades, spot instance preemption).
+# With minReplicas=2 (from HPA), this allows draining one pod at a time
+# while maintaining service availability.
+#
+# Combined with the rolling update strategy (maxUnavailable=0), this
+# guarantees zero-downtime during both deployments and cluster maintenance.
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: sbobuz-server
+  labels:
+    app: sbobuz-server
+    app.kubernetes.io/name: sbobuz-server
+    app.kubernetes.io/component: server
+    app.kubernetes.io/part-of: sbobuz
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: sbobuz-server

@@ -1,0 +1,9 @@
+# Dedicated namespace for the Sbobuz application.
+# Overlays override this with environment-specific namespaces
+# (sbobuz-staging, sbobuz-production) via Kustomize namespace transformer.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: sbobuz
+  labels:
+    app.kubernetes.io/part-of: sbobuz

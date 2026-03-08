@@ -1,0 +1,53 @@
+# Grafana datasource provisioning for Sbobuz observability stack.
+#
+# Datasources are auto-provisioned on Grafana startup. Changes here take
+# effect after a Grafana restart (or container recreation).
+#
+# UIDs are stable identifiers used by dashboard JSON files to reference
+# datasources. Changing a UID here requires updating all dashboards.
+#
+# @see docs/specs/observability-stack.md Section 10.2
+
+apiVersion: 1
+
+datasources:
+  # Prometheus — primary metrics store.
+  # Scrapes /metrics from sbobuz-server every 15s.
+  - name: Prometheus
+    type: prometheus
+    uid: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    jsonData:
+      # Match the Prometheus scrape interval for optimal query alignment.
+      timeInterval: "15s"
+      httpMethod: GET
+    editable: false
+
+  # Jaeger — distributed trace store.
+  # Receives OTLP/gRPC traces from the OTel SDK on port 4317.
+  # Grafana queries the Jaeger UI API on port 16686.
+  - name: Jaeger
+    type: jaeger
+    uid: jaeger
+    access: proxy
+    url: http://jaeger:16686
+    editable: false
+
+  # Loki — structured log aggregation.
+  # Receives logs from Promtail (container stdout tailing).
+  # Supports label-based log filtering and LogQL queries.
+  - name: Loki
+    type: loki
+    uid: loki
+    access: proxy
+    url: http://loki:3100
+    jsonData:
+      # Enable derived fields to link log lines to Jaeger traces via traceId.
+      derivedFields:
+        - datasourceUid: jaeger
+          matcherRegex: '"traceId":"([a-f0-9]+)"'
+          name: TraceID
+          url: "$${__value.raw}"
+    editable: false

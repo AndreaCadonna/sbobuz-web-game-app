@@ -1,0 +1,10 @@
+# Staging config overrides.
+# - NODE_ENV=staging enables staging-specific behavior (e.g. verbose error responses).
+# - OTEL_TRACE_SAMPLING_RATE=1.0 captures 100% of traces for debugging.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sbobuz-config
+data:
+  NODE_ENV: "staging"
+  OTEL_TRACE_SAMPLING_RATE: "1.0"

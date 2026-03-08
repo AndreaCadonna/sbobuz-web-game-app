@@ -1,0 +1,8 @@
+# Staging deployment patch.
+# Single replica is sufficient for staging; keeps costs low.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sbobuz-server
+spec:
+  replicas: 1

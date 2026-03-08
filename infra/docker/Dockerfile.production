@@ -1,0 +1,118 @@
+# ==========================================================================
+# Sbobuz Production Dockerfile -- Multi-Stage Build
+#
+# Stage 1 "deps":       Install all dependencies (dev + prod)
+# Stage 2 "build":      Compile TypeScript via project references
+# Stage 3 "production": Minimal runtime image, non-root user
+#
+# Build args:
+#   GIT_REVISION  -- full git commit SHA for OCI labels
+#   BUILD_DATE    -- ISO 8601 timestamp
+#   VERSION       -- semver from package.json or tag
+#
+# Security:
+#   - Runs as non-root user (node:node, UID 1000)
+#   - No secrets baked into the image
+#   - npm cache cleaned after install
+#
+# @see docs/specs/infrastructure-deployment.md Section 3
+# ==========================================================================
+
+# --------------------------------------------------------------------------
+# Stage 1: deps -- Install all dependencies (dev + prod) for build stage
+# --------------------------------------------------------------------------
+FROM node:20-alpine AS deps
+
+WORKDIR /app
+
+# Copy workspace root manifests first for optimal layer caching.
+# Dependencies only change when package.json or lockfile changes.
+COPY package.json package-lock.json ./
+COPY shared/package.json ./shared/
+COPY server/package.json ./server/
+COPY app/package.json ./app/
+
+# Install ALL dependencies (devDependencies needed for TypeScript compilation)
+RUN npm ci
+
+# --------------------------------------------------------------------------
+# Stage 2: build -- Compile TypeScript to JavaScript
+# --------------------------------------------------------------------------
+FROM node:20-alpine AS build
+
+WORKDIR /app
+
+# Copy node_modules from deps stage.
+# npm workspaces hoist most packages to root node_modules, but some
+# workspace-specific dependencies (e.g. @types) land in workspace dirs.
+COPY --from=deps /app/node_modules ./node_modules
+COPY --from=deps /app/server/node_modules ./server/node_modules
+
+# Copy source code and TypeScript configs
+COPY package.json tsconfig.json ./
+COPY shared/ ./shared/
+COPY server/ ./server/
+
+# Compile TypeScript using project references (shared first, then server).
+# Use node to invoke tsc directly to avoid npx registry lookups and symlink issues.
+RUN node ./node_modules/typescript/bin/tsc --build server/tsconfig.json
+
+# --------------------------------------------------------------------------
+# Stage 3: production -- Minimal runtime image
+# --------------------------------------------------------------------------
+FROM node:20-alpine AS production
+
+# Build arguments for OCI image labels
+ARG GIT_REVISION=unknown
+ARG BUILD_DATE=unknown
+ARG VERSION=0.0.0
+
+# OCI standard labels for image metadata.
+# These enable tracing an image back to its source code and build.
+LABEL org.opencontainers.image.source="https://github.com/AndreaCadonna/sbobuz-web-game-app"
+LABEL org.opencontainers.image.revision="${GIT_REVISION}"
+LABEL org.opencontainers.image.created="${BUILD_DATE}"
+LABEL org.opencontainers.image.version="${VERSION}"
+LABEL org.opencontainers.image.title="sbobuz-server"
+LABEL org.opencontainers.image.description="Sbobuz card game server"
+
+WORKDIR /app
+
+# Copy workspace root manifests for production dependency install
+COPY package.json package-lock.json ./
+COPY shared/package.json ./shared/
+COPY server/package.json ./server/
+COPY app/package.json ./app/
+
+# Install production-only dependencies and clean npm cache to reduce image size
+RUN npm ci --omit=dev && \
+    npm cache clean --force
+
+# Copy compiled JavaScript output from build stage
+COPY --from=build /app/server/dist ./server/dist
+COPY --from=build /app/shared/dist ./shared/dist
+
+# Copy SQL migration files needed at runtime for startup migrations
+COPY server/src/infra/database/migrations ./server/dist/infra/database/migrations
+
+# Set ownership to the built-in node user (UID 1000).
+# node:20-alpine includes this user by default.
+RUN chown -R node:node /app
+
+# Run as non-root user for security (locked decision)
+USER node
+
+# Default environment -- overridden at runtime via env vars or K8s ConfigMaps
+ENV NODE_ENV=production
+ENV PORT=3000
+
+# App port (3000) and metrics port (9464) for Prometheus scraping
+EXPOSE 3000 9464
+
+# Health check: lightweight liveness probe using wget (curl not in alpine by default).
+# The /health/live endpoint returns 200 if the process is running.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:3000/health/live || exit 1
+
+# Start the compiled server entry point
+CMD ["node", "server/dist/server.js"]

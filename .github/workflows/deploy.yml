@@ -1,0 +1,287 @@
+# Deploy Pipeline for Sbobuz
+#
+# Triggered on push to main (after CI passes) or manual dispatch.
+# Builds the container image, pushes to ghcr.io, deploys to staging,
+# runs smoke tests, then waits for manual approval before production.
+#
+# Uses Kustomize for Kubernetes manifest management (locked decision).
+# Rolling updates with maxSurge: 1, maxUnavailable: 0 (locked decision).
+
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment"
+        required: true
+        default: "staging"
+        type: choice
+        options:
+          - staging
+          - production
+
+concurrency:
+  # Only one deploy at a time to avoid conflicting rollouts.
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository_owner }}/sbobuz-server
+
+jobs:
+  # ------------------------------------------------------------------
+  # Job 1: Build and Push
+  # Multi-stage Docker build, tagged with commit SHA + latest + semver.
+  # Pushes to GitHub Container Registry (ghcr.io).
+  # ------------------------------------------------------------------
+  build-and-push:
+    name: Build & Push Image
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      image-tag: ${{ steps.meta.outputs.version }}
+      image-digest: ${{ steps.build.outputs.digest }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            # Commit SHA (7 chars) — always applied
+            type=sha,prefix=,format=short
+            # "latest" — only on main branch pushes
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            # Semver — only on version tags (v1.2.3)
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+
+      - name: Build and push Docker image
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: infra/docker/Dockerfile.production
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            GIT_REVISION=${{ github.sha }}
+            BUILD_DATE=${{ github.event.head_commit.timestamp }}
+            VERSION=${{ steps.meta.outputs.version }}
+
+  # ------------------------------------------------------------------
+  # Job 2: Deploy to Staging (automatic)
+  # Updates the Kustomize overlay with the new image tag and applies.
+  # Waits for rollout to complete (5 min timeout).
+  # Auto-rollback on failure.
+  # ------------------------------------------------------------------
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [build-and-push]
+    environment:
+      name: staging
+      url: ${{ vars.STAGING_URL }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Setup Kustomize
+        uses: imranismail/setup-kustomize@v2
+
+      - name: Configure kubeconfig
+        run: |
+          mkdir -p "$HOME/.kube"
+          echo "${{ secrets.KUBE_CONFIG_STAGING }}" | base64 -d > "$HOME/.kube/config"
+          chmod 600 "$HOME/.kube/config"
+
+      - name: Update image tag in staging overlay
+        working-directory: infra/k8s/overlays/staging
+        run: |
+          kustomize edit set image \
+            sbobuz-server=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.build-and-push.outputs.image-tag }}
+
+      - name: Apply Kustomize manifests
+        run: |
+          kustomize build infra/k8s/overlays/staging | kubectl apply -f -
+
+      - name: Wait for rollout
+        run: |
+          kubectl rollout status deployment/sbobuz-server \
+            --namespace=sbobuz-staging \
+            --timeout=300s
+        continue-on-error: true
+        id: rollout
+
+      - name: Rollback on failure
+        if: steps.rollout.outcome == 'failure'
+        run: |
+          kubectl rollout undo deployment/sbobuz-server \
+            --namespace=sbobuz-staging
+          echo "::error::Staging rollout failed. Rolled back to previous revision."
+          exit 1
+
+  # ------------------------------------------------------------------
+  # Job 3: Smoke Tests
+  # Verifies the staging deployment is functional before production.
+  # Polls health endpoints and verifies basic flows.
+  # ------------------------------------------------------------------
+  smoke-tests:
+    name: Smoke Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: [deploy-staging]
+    environment:
+      name: staging
+    steps:
+      - name: Wait for readiness (poll /health/ready)
+        run: |
+          STAGING_URL="${{ vars.STAGING_URL }}"
+          MAX_ATTEMPTS=12
+          INTERVAL=5
+
+          for i in $(seq 1 $MAX_ATTEMPTS); do
+            echo "Attempt $i/$MAX_ATTEMPTS: checking $STAGING_URL/health/ready"
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$STAGING_URL/health/ready" || true)
+            if [ "$STATUS" = "200" ]; then
+              echo "Service is ready."
+              exit 0
+            fi
+            echo "Status: $STATUS — retrying in ${INTERVAL}s..."
+            sleep $INTERVAL
+          done
+
+          echo "::error::Service did not become ready within 60 seconds."
+          exit 1
+
+      - name: Verify health endpoints
+        run: |
+          STAGING_URL="${{ vars.STAGING_URL }}"
+
+          echo "--- /health/live ---"
+          curl -sf "$STAGING_URL/health/live" | jq .
+
+          echo "--- /health/ready ---"
+          READY_RESPONSE=$(curl -sf "$STAGING_URL/health/ready")
+          echo "$READY_RESPONSE" | jq .
+
+          # Verify database and Redis are reported as up
+          PG_STATUS=$(echo "$READY_RESPONSE" | jq -r '.postgres // .database // "unknown"')
+          REDIS_STATUS=$(echo "$READY_RESPONSE" | jq -r '.redis // "unknown"')
+          echo "Postgres: $PG_STATUS, Redis: $REDIS_STATUS"
+
+      - name: Verify WebSocket handshake
+        run: |
+          STAGING_URL="${{ vars.STAGING_URL }}"
+          # Socket.IO handshake via HTTP long-polling transport
+          HANDSHAKE=$(curl -sf "$STAGING_URL/socket.io/?EIO=4&transport=polling" || true)
+          if echo "$HANDSHAKE" | grep -q "sid"; then
+            echo "WebSocket handshake succeeded."
+          else
+            echo "::warning::WebSocket handshake check returned unexpected response."
+            echo "$HANDSHAKE"
+          fi
+
+  # ------------------------------------------------------------------
+  # Job 4: Deploy to Production (manual approval)
+  # Uses GitHub environment protection rules on "production" environment.
+  # Deploys the exact same image tag that passed staging smoke tests.
+  # ------------------------------------------------------------------
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: [build-and-push, smoke-tests]
+    environment:
+      name: production
+      url: ${{ vars.PRODUCTION_URL }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Setup Kustomize
+        uses: imranismail/setup-kustomize@v2
+
+      - name: Configure kubeconfig
+        run: |
+          mkdir -p "$HOME/.kube"
+          echo "${{ secrets.KUBE_CONFIG_PRODUCTION }}" | base64 -d > "$HOME/.kube/config"
+          chmod 600 "$HOME/.kube/config"
+
+      - name: Update image tag in production overlay
+        working-directory: infra/k8s/overlays/production
+        run: |
+          kustomize edit set image \
+            sbobuz-server=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ needs.build-and-push.outputs.image-tag }}
+
+      - name: Apply Kustomize manifests
+        run: |
+          kustomize build infra/k8s/overlays/production | kubectl apply -f -
+
+      - name: Wait for rollout
+        run: |
+          kubectl rollout status deployment/sbobuz-server \
+            --namespace=sbobuz-production \
+            --timeout=600s
+        continue-on-error: true
+        id: rollout
+
+      - name: Rollback on failure
+        if: steps.rollout.outcome == 'failure'
+        run: |
+          kubectl rollout undo deployment/sbobuz-server \
+            --namespace=sbobuz-production
+          echo "::error::Production rollout failed. Rolled back to previous revision."
+          exit 1
+
+      - name: Post-deploy health check
+        run: |
+          PROD_URL="${{ vars.PRODUCTION_URL }}"
+          MAX_ATTEMPTS=12
+          INTERVAL=5
+
+          for i in $(seq 1 $MAX_ATTEMPTS); do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "$PROD_URL/health/ready" || true)
+            if [ "$STATUS" = "200" ]; then
+              echo "Production is healthy."
+              exit 0
+            fi
+            echo "Attempt $i/$MAX_ATTEMPTS: status $STATUS — retrying..."
+            sleep $INTERVAL
+          done
+
+          echo "::error::Production health check failed."
+          exit 1

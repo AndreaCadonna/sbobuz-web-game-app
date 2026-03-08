@@ -1,0 +1,36 @@
+# Service for the Sbobuz server.
+#
+# ClusterIP type — external access is provided by Ingress resources
+# defined in environment overlays.
+#
+# Session affinity is set to ClientIP so that Socket.IO long-polling
+# transport (used during WebSocket upgrade handshake) consistently
+# routes to the same pod. Once the WebSocket connection is established,
+# the connection is persistent and affinity is no longer needed.
+# The 3600s timeout matches the nginx ingress sticky session config.
+apiVersion: v1
+kind: Service
+metadata:
+  name: sbobuz-server
+  labels:
+    app: sbobuz-server
+    app.kubernetes.io/name: sbobuz-server
+    app.kubernetes.io/component: server
+    app.kubernetes.io/part-of: sbobuz
+spec:
+  type: ClusterIP
+  selector:
+    app: sbobuz-server
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 3600
+  ports:
+    - name: http
+      port: 3000
+      targetPort: http
+      protocol: TCP
+    - name: metrics
+      port: 9464
+      targetPort: metrics
+      protocol: TCP

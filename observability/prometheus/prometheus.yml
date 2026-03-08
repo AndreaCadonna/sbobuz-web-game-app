@@ -1,12 +1,45 @@
-# Prometheus configuration for local development.
-# Scrapes the sbobuz-server metrics endpoint.
+# Prometheus configuration for Sbobuz local development and production.
+#
+# Scrape targets:
+#   - sbobuz-server: Application metrics on port 9464
+#   - node-exporter: Host-level OS metrics (optional, if deployed)
+#
+# Alerting rules are loaded from /etc/prometheus/rules/ which is mounted
+# from observability/prometheus/rules/ in docker-compose.yml.
+#
+# @see docs/specs/observability-stack.md Section 8.4
 
 global:
   scrape_interval: 15s
   evaluation_interval: 15s
 
+# Alertmanager receives alert triggers from Prometheus.
+# In local dev, alertmanager is optional — alerts still evaluate and show
+# in Prometheus UI under /alerts even without an alertmanager.
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ["alertmanager:9093"]
+
+# Rule files for recording rules and alerting rules.
+# These files are created in Step 8.7 (alerting rules).
+rule_files:
+  - /etc/prometheus/rules/*.yml
+
 scrape_configs:
+  # Application metrics — custom prom-client registry on a dedicated port.
+  # The metrics port (9464) is separate from the app port (3000) to avoid
+  # Prometheus scrape traffic appearing in HTTP request metrics.
   - job_name: "sbobuz-server"
+    metrics_path: /metrics
+    scrape_interval: 15s
     static_configs:
       - targets: ["app:9464"]
-    metrics_path: /metrics
+        labels:
+          environment: "development"
+
+  # Optional: node-exporter provides host-level metrics (CPU, memory, disk, network).
+  # Uncomment when node-exporter is added to docker-compose.yml.
+  # - job_name: "node-exporter"
+  #   static_configs:
+  #     - targets: ["node-exporter:9100"]
