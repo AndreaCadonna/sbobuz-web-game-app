@@ -20,6 +20,7 @@ import { createRedisClients, closeRedisClients } from './infra/redis/index.js';
 import { loadConfig, type ServerConfig } from './shared/config/index.js';
 import { runWithContext, generateRequestId, generateTraceId, generateSpanId } from './shared/context.js';
 import { createAuthRouter } from './modules/auth/routes.js';
+import { createLobbyRouter } from './modules/lobby/routes.js';
 import { initLogger, createModuleLogger } from './shared/logger.js';
 import { errorHandler } from './shared/middleware/error-handler.js';
 import { createHealthRouter } from './shared/middleware/health.js';
@@ -88,6 +89,7 @@ export function createApp(config: ServerConfig): Express {
 
   // --- API routes ---
   app.use('/api/v1/auth', createAuthRouter());
+  app.use('/api/v1/lobby', createLobbyRouter());
 
   // --- 404 handler ---
   app.use((_req: Request, res: Response): void => {

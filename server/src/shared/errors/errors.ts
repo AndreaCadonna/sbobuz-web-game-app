@@ -71,7 +71,7 @@ export class AuthorizationError extends AppError {
   constructor(
     message: string,
     options?: {
-      errorCode?: Extract<ErrorCode, 'AUTH_INSUFFICIENT_PERMISSIONS' | 'AUTH_ACCOUNT_BANNED'>;
+      errorCode?: Extract<ErrorCode, 'AUTH_INSUFFICIENT_PERMISSIONS' | 'AUTH_ACCOUNT_BANNED' | 'ROOM_NOT_HOST'>;
       details?: unknown;
       cause?: Error;
     },
