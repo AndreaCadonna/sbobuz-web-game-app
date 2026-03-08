@@ -1,0 +1,8 @@
+# Production deployment patch.
+# 2 replicas as the baseline; HPA scales between 2 and 5.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sbobuz-server
+spec:
+  replicas: 2

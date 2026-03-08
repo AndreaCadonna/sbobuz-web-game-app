@@ -1,0 +1,29 @@
+# Production overlay for the Sbobuz application.
+#
+# Key differences from base:
+#   - Namespace: sbobuz-production
+#   - NODE_ENV: production
+#   - 10% trace sampling (cost vs observability balance)
+#   - 2 replicas minimum (overridden by HPA up to 5)
+#   - HPA for auto-scaling based on CPU
+#   - PDB to ensure availability during node drains / upgrades
+#   - Ingress with api.sbobuz.com hostname
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+  - ingress.yaml
+  - hpa.yaml
+  - pdb.yaml
+
+namespace: sbobuz-production
+
+patches:
+  - path: deployment-patch.yaml
+  - path: configmap-patch.yaml
+
+images:
+  - name: sbobuz-server
+    newName: ghcr.io/andreacadonna/sbobuz-server
+    newTag: latest

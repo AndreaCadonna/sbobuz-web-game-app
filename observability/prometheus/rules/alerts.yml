@@ -1,0 +1,244 @@
+# Prometheus alerting rules for Sbobuz.
+#
+# Mounted into the Prometheus container at /etc/prometheus/rules/alerts.yml
+# via docker-compose volume mapping. The prometheus.yml config loads all
+# files matching /etc/prometheus/rules/*.yml as rule_files.
+#
+# Alert severity levels:
+#   critical  - Page immediately (PagerDuty / on-call)
+#   warning   - Investigate within 30 minutes (Slack channel)
+#   info      - Review during business hours
+#
+# @see docs/specs/observability-stack.md
+# @see docs/runbooks/ for investigation procedures
+
+groups:
+  # ---------------------------------------------------------------------------
+  # Critical Alerts — Page immediately
+  # ---------------------------------------------------------------------------
+  - name: sbobuz.critical
+    rules:
+      # High sustained error rate across the application.
+      # A rate above 10 errors/sec for 5 minutes indicates a systemic issue
+      # (bad deploy, downstream failure, data corruption).
+      - alert: HighErrorRate
+        expr: sum(rate(sbobuz_errors_total[5m])) > 10
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High application error rate"
+          description: >-
+            The aggregate error rate across all modules has exceeded 10 errors/sec
+            for the last 5 minutes. Current rate:
+            {{ $value | printf "%.1f" }} errors/sec.
+          runbook_url: "https://github.com/AndreaCadonna/sbobuz-web-game-app/blob/main/docs/runbooks/high-error-rate.md"
+
+      # Any game engine error is critical because it means a player experienced
+      # an invalid state transition, which can corrupt game state.
+      - alert: GameEngineError
+        expr: increase(sbobuz_game_engine_errors_total[1m]) > 0
+        labels:
+          severity: critical
+        annotations:
+          summary: "Game engine state transition failure"
+          description: >-
+            The game engine reported {{ $value | printf "%.0f" }} failed state
+            transition(s) in the last minute. This indicates a bug in the
+            game logic or invalid client input bypassing validation.
+          runbook_url: "https://github.com/AndreaCadonna/sbobuz-web-game-app/blob/main/docs/runbooks/game-engine-error.md"
+
+      # Unhandled exceptions should never happen in production. Even one
+      # indicates a code path without proper error handling.
+      - alert: UnhandledException
+        expr: increase(sbobuz_unhandled_exceptions_total[1m]) > 0
+        labels:
+          severity: critical
+        annotations:
+          summary: "Unhandled exception caught by global handler"
+          description: >-
+            {{ $value | printf "%.0f" }} unhandled exception(s) caught by the
+            global error handler in the last minute. Module labels on the metric
+            identify the source.
+          runbook_url: "https://github.com/AndreaCadonna/sbobuz-web-game-app/blob/main/docs/runbooks/unhandled-exception.md"
+
+      # Database connectivity failure. The scrape target health check uses the
+      # Prometheus "up" meta-metric combined with our pool gauge. If the pool
+      # reports zero active connections and waiting count is nonzero, the DB
+      # is likely unreachable.
+      - alert: DatabaseDown
+        expr: sbobuz_postgres_connections_used_percent == 0 and db_pool_waiting_count > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "PostgreSQL database appears down"
+          description: >-
+            The database connection pool shows 0% utilization while
+            {{ $value | printf "%.0f" }} queries are waiting for a connection.
+            This indicates the database is unreachable or rejecting connections.
+          runbook_url: "https://github.com/AndreaCadonna/sbobuz-web-game-app/blob/main/docs/runbooks/database-down.md"
+
+      # Redis is critical for session storage, Socket.IO adapter, and
+      # refresh token management. Loss of Redis impacts all connected users.
+      - alert: RedisDown
+        expr: redis_connections_active == 0
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "Redis appears down"
+          description: >-
+            No active Redis connections reported for 30 seconds. Redis is
+            required for session storage, Socket.IO pub/sub, and refresh
+            token management. All real-time features are affected.
+          runbook_url: "https://github.com/AndreaCadonna/sbobuz-web-game-app/blob/main/docs/runbooks/redis-down.md"
+
+  # ---------------------------------------------------------------------------
+  # Warning Alerts — Investigate within 30 minutes
+  # ---------------------------------------------------------------------------
+  - name: sbobuz.warning
+    rules:
+      # High p99 latency means the slowest 1% of requests are taking over
+      # 500ms, which degrades user experience noticeably.
+      - alert: HighRequestLatency
+        expr: histogram_quantile(0.99, sum(rate(http_request_duration_ms_bucket[5m])) by (le)) > 500
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "HTTP p99 latency exceeds 500ms"
+          description: >-
+            The 99th percentile HTTP request latency is
+            {{ $value | printf "%.0f" }}ms, exceeding the 500ms threshold.
+            Check for slow database queries, Redis timeouts, or CPU saturation.
+
+      # Event loop lag above 100ms means the Node.js process is struggling
+      # to handle its workload — synchronous operations or GC pauses are
+      # blocking the event loop.
+      - alert: EventLoopLag
+        expr: histogram_quantile(0.99, sum(rate(event_loop_lag_ms_bucket[2m])) by (le)) > 100
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Node.js event loop lag exceeds 100ms (p99)"
+          description: >-
+            The 99th percentile event loop lag is {{ $value | printf "%.0f" }}ms.
+            This indicates CPU-bound work or long synchronous operations blocking
+            the event loop. Game state updates and WebSocket messages will be delayed.
+
+      # Database connection pool nearing exhaustion. At 80% utilization,
+      # new queries will start queuing, increasing latency.
+      - alert: DbPoolSaturation
+        expr: sbobuz_postgres_connections_used_percent > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "PostgreSQL connection pool above 80% utilization"
+          description: >-
+            Database connection pool is at {{ $value | printf "%.0f" }}% capacity.
+            If this continues to rise, queries will queue and latency will increase.
+            Consider scaling the pool size or optimizing long-running queries.
+
+      # Redis memory approaching its configured maximum. When Redis hits
+      # maxmemory, it starts evicting keys per its eviction policy, which
+      # can cause session loss or game state corruption.
+      - alert: RedisHighMemory
+        expr: sbobuz_redis_memory_used_bytes / (redis_memory_max_bytes > 0 or sbobuz_redis_memory_used_bytes * 0 + 1073741824) > 0.8
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Redis memory usage above 80%"
+          description: >-
+            Redis is using {{ $value | printf "%.0f" }}% of its configured
+            maximum memory. Key eviction may begin soon, risking loss of
+            session data, refresh tokens, or game state.
+
+      # High game cancellation rate may indicate matchmaking issues, player
+      # frustration, or bugs causing games to become unplayable.
+      # Cancellation rate = cancelled / (cancelled + finished) over 30 min.
+      - alert: HighCancellationRate
+        expr: >-
+          sum(rate(sbobuz_games_completed_total{result="cancelled"}[30m]))
+          /
+          (sum(rate(sbobuz_games_completed_total[30m])) > 0)
+          > 0.2
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Game cancellation rate above 20%"
+          description: >-
+            {{ $value | printf "%.0f" }}% of games in the last 30 minutes
+            ended in cancellation. Investigate whether players are experiencing
+            connectivity issues, matchmaking problems, or game-breaking bugs.
+
+      # Sustained high authentication failures may indicate a brute-force
+      # attack or a misconfigured client.
+      - alert: HighAuthFailures
+        expr: sum(rate(sbobuz_auth_failures_total[5m])) * 60 > 100
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Authentication failure rate exceeds 100/min"
+          description: >-
+            Authentication failures are occurring at
+            {{ $value | printf "%.0f" }}/min. This may indicate a credential
+            stuffing attack, a misconfigured client, or an expired JWT signing
+            key. Check failure reason labels for breakdown.
+
+      # Instance headroom dropping below 20% means the server is nearing
+      # its game capacity limit and may need horizontal scaling.
+      - alert: CapacityApproaching
+        expr: sbobuz_instance_headroom_percent < 20
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Server instance headroom below 20%"
+          description: >-
+            Instance {{ $labels.server_id }} has only
+            {{ $value | printf "%.0f" }}% headroom remaining. New game creation
+            may be throttled soon. The HPA should be scaling additional pods.
+
+  # ---------------------------------------------------------------------------
+  # Informational Alerts — Review during business hours
+  # ---------------------------------------------------------------------------
+  - name: sbobuz.info
+    rules:
+      # Matchmaking is taking longer than expected. This is normal during
+      # low-traffic periods but sustained high wait times indicate either
+      # too few players or a matchmaking algorithm issue.
+      # Note: This metric tracks game duration as a proxy since dedicated
+      # matchmaking wait metrics are not yet instrumented.
+      - alert: MatchmakingSlow
+        expr: histogram_quantile(0.95, sum(rate(sbobuz_game_duration_seconds_bucket[15m])) by (le)) > 60
+        for: 15m
+        labels:
+          severity: info
+        annotations:
+          summary: "Game setup duration p95 exceeds 60s"
+          description: >-
+            The 95th percentile game setup/matchmaking time is
+            {{ $value | printf "%.0f" }}s. During low-traffic periods this may
+            be expected. If sustained during peak hours, investigate the
+            matchmaking configuration and player queue depth.
+
+      # AI move computation taking too long degrades the game experience
+      # for players waiting for the AI opponent.
+      - alert: AiMoveSlow
+        expr: histogram_quantile(0.99, sum(rate(sbobuz_ai_move_duration_ms_bucket[10m])) by (le)) > 1000
+        for: 10m
+        labels:
+          severity: info
+        annotations:
+          summary: "AI move computation p99 exceeds 1000ms"
+          description: >-
+            The 99th percentile AI move computation time is
+            {{ $value | printf "%.0f" }}ms. Players may perceive the AI as
+            slow or unresponsive. Check CPU utilization and AI difficulty
+            distribution.

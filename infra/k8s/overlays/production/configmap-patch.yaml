@@ -1,0 +1,11 @@
+# Production config overrides.
+# - NODE_ENV=production enables production behavior (strict CORS, minimal error details).
+# - OTEL_TRACE_SAMPLING_RATE=0.1 samples 10% of traces to control storage costs
+#   while still providing sufficient observability for debugging.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sbobuz-config
+data:
+  NODE_ENV: "production"
+  OTEL_TRACE_SAMPLING_RATE: "0.1"

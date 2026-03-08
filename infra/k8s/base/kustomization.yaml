@@ -1,0 +1,26 @@
+# Kustomize base for the Sbobuz application.
+#
+# Overlays (staging, production) extend this base with:
+#   - Namespace overrides
+#   - Replica count patches
+#   - Environment-specific config patches
+#   - Ingress definitions
+#   - HPA and PDB (production only)
+#
+# The sbobuz-secrets Secret is referenced by the Deployment but NOT
+# defined here — it must be provisioned externally (sealed-secrets,
+# SOPS, or a cloud secrets manager) before the first deploy.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+labels:
+  - pairs:
+      app.kubernetes.io/managed-by: kustomize
+    includeSelectors: false
+
+resources:
+  - namespace.yaml
+  - deployment.yaml
+  - service.yaml
+  - configmap.yaml
+  - service-monitor.yaml

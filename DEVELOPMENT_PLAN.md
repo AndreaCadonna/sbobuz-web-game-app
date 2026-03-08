@@ -481,35 +481,57 @@ Header, footer, mobile-responsive game board.
 
 **Goal:** Production-ready observability, automated CI/CD, containerized deployment.
 
-### Step 8.1 - Implement OpenTelemetry SDK
+### [x] Step 8.1 - Implement OpenTelemetry SDK
 Trace provider, metric provider, auto-instrumentation. Must load before other imports.
 
-- `server/infra/otel/setup.ts`
+- `server/src/infra/otel/setup.ts`, `server/src/infra/otel/setup.test.ts`
 
-### Step 8.2 - Implement Prometheus Metrics
+### [x] Step 8.2 - Implement Prometheus Metrics
 System, business, error, and capacity metrics. `/metrics` endpoint on port 9464.
 
-- `server/infra/otel/metrics.ts`
+- `server/src/infra/otel/metrics.ts`, `server/src/infra/otel/metrics.test.ts`
 
-### Step 8.3 - Create Observability Configuration
+### [x] Step 8.3 - Create Observability Configuration
 Prometheus scrape config, Grafana datasources and dashboards.
 
-### Step 8.4 - Create GitHub Actions CI Pipeline
+- `observability/prometheus/prometheus.yml`
+- `observability/grafana/provisioning/datasources/datasources.yml`
+- `observability/grafana/provisioning/dashboards/dashboards.yml`
+- `observability/grafana/dashboards/system-overview.json`
+- `observability/grafana/dashboards/game-activity.json`
+- `observability/grafana/dashboards/game-engine-performance.json`
+- `observability/grafana/dashboards/infrastructure.json`
+
+### [x] Step 8.4 - Create GitHub Actions CI Pipeline
 Lint, typecheck, unit tests, integration tests (with service containers), build check, deploy pipeline.
 
 - `.github/workflows/ci.yml`, `.github/workflows/deploy.yml`
 
-### Step 8.5 - Create Production Dockerfile
+### [x] Step 8.5 - Create Production Dockerfile
 Multi-stage build (deps -> build -> production).
 
-### Step 8.6 - Create Kubernetes Manifests
+- `infra/docker/Dockerfile.production`
+
+### [x] Step 8.6 - Create Kubernetes Manifests
 Base manifests + staging/production overlays with HPA and PDB.
 
-### Step 8.7 - Create Alerting Rules
+- `infra/k8s/base/` (deployment, service, configmap, namespace, service-monitor, kustomization)
+- `infra/k8s/overlays/staging/` (deployment-patch, configmap-patch, ingress, kustomization)
+- `infra/k8s/overlays/production/` (deployment-patch, configmap-patch, ingress, hpa, pdb, kustomization)
+
+### [x] Step 8.7 - Create Alerting Rules
 Critical, warning, and informational alerts.
 
-### Step 8.8 - Create Runbooks
+- `observability/prometheus/rules/alerts.yml`
+
+### [x] Step 8.8 - Create Runbooks
 Runbook stubs for each critical alert scenario.
+
+- `docs/runbooks/high-error-rate.md`
+- `docs/runbooks/game-engine-error.md`
+- `docs/runbooks/unhandled-exception.md`
+- `docs/runbooks/database-down.md`
+- `docs/runbooks/redis-down.md`
 
 ---
 

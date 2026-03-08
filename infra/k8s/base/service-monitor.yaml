@@ -1,0 +1,27 @@
+# ServiceMonitor for Prometheus Operator.
+#
+# Tells Prometheus to scrape the /metrics endpoint on port 9464
+# from all pods matching the sbobuz-server selector.
+# The server exposes prom-client metrics via a custom Registry
+# (see server/src/infra/otel/metrics.ts).
+#
+# Requires the Prometheus Operator CRD to be installed in the cluster.
+# If the cluster does not have the Prometheus Operator, this resource
+# is safely ignored (no errors, just no auto-discovery).
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: sbobuz-metrics
+  labels:
+    app: sbobuz-server
+    app.kubernetes.io/name: sbobuz-server
+    app.kubernetes.io/component: monitoring
+    app.kubernetes.io/part-of: sbobuz
+spec:
+  selector:
+    matchLabels:
+      app: sbobuz-server
+  endpoints:
+    - port: metrics
+      interval: 15s
+      path: /metrics
