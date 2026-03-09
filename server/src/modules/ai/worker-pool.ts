@@ -87,9 +87,12 @@ export function setWorkerScriptPath(path: string): void {
 function getWorkerScriptPath(): string {
   if (workerScriptPath) return workerScriptPath;
 
-  // Default: resolve worker.ts relative to this file
+  // Resolve worker script relative to this file.
+  // In production (compiled JS), use .js; in development (tsx), use .ts.
   const currentDir = dirname(fileURLToPath(import.meta.url));
-  return join(currentDir, 'worker.ts');
+  const currentFile = fileURLToPath(import.meta.url);
+  const ext = currentFile.endsWith('.js') ? '.js' : '.ts';
+  return join(currentDir, `worker${ext}`);
 }
 
 // ---------------------------------------------------------------------------
@@ -113,7 +116,8 @@ function createWorker(): ManagedWorker {
 
   worker.on('error', (error: Error) => {
     logger.error({ workerId: id, err: error }, 'Worker thread error');
-    handleWorkerCrash(managed);
+    // Don't spawn replacement here — wait for the 'exit' event which always
+    // follows 'error'. This prevents double crash recovery.
   });
 
   worker.on('exit', (code: number) => {
@@ -130,13 +134,13 @@ function handleWorkerResponse(managed: ManagedWorker, response: WorkerResponse):
   const pending = pendingRequests.get(response.requestId);
 
   if (!pending) {
-    // Response for a timed-out or cancelled request -- discard
+    // Response for a timed-out or cancelled request — discard silently.
+    // Do NOT mark the worker idle or call processQueue() here: the timeout
+    // handler already marked it idle and may have dispatched a new request.
     logger.debug(
       { requestId: response.requestId },
       'Received response for unknown request (likely timed out)',
     );
-    managed.busy = false;
-    processQueue();
     return;
   }
 

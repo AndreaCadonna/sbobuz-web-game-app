@@ -34,12 +34,17 @@ async function broadcastRoomState(roomId: string): Promise<void> {
   try {
     const { getSocketIOServer } = await import('../../infra/websocket/setup.js');
     const { buildRoomStatePayload } = await import('../realtime/handlers/room-events.js');
+    const { getRoomPresence } = await import('../realtime/presence-manager.js');
     const { getRoom: getRoomFromRepo } = await import('./room-repository.js');
 
     const io = getSocketIOServer();
     const fullRoom = await getRoomFromRepo(roomId);
     if (fullRoom) {
-      const roomState = buildRoomStatePayload(fullRoom);
+      const presence = await getRoomPresence(roomId);
+      const connectedUserIds = new Set(
+        presence.filter((p) => p.status === 'ONLINE').map((p) => p.userId),
+      );
+      const roomState = buildRoomStatePayload(fullRoom, connectedUserIds);
       io.to(roomId).emit('room:state_update', roomState);
     }
   } catch (err) {
@@ -59,8 +64,7 @@ function requireAuth(req: Request): { userId: string; username: string; displayN
   return {
     userId: req.userId,
     username: req.username,
-    // displayName falls back to username if not available on request
-    displayName: req.username,
+    displayName: req.displayName ?? req.username,
   };
 }
 
@@ -133,7 +137,7 @@ export async function joinRoom(req: Request, res: Response): Promise<void> {
 
   logger.info({ roomId: room.roomId, userId: user.userId }, 'Player joined room via API');
 
-  await broadcastRoomState(room.roomId);
+  void broadcastRoomState(room.roomId);
 
   const body: ApiSuccessResponse<{ room: RoomState }> = {
     success: true,
@@ -154,7 +158,7 @@ export async function leaveRoom(req: Request, res: Response): Promise<void> {
   logger.info({ roomId, userId: user.userId }, 'Player left room via API');
 
   if (result.room) {
-    await broadcastRoomState(roomId);
+    void broadcastRoomState(roomId);
   }
 
   const body: ApiSuccessResponse<{
@@ -182,7 +186,7 @@ export async function setReady(req: Request, res: Response): Promise<void> {
 
   const room = await roomService.setReady(user.userId, roomId, input.isReady);
 
-  await broadcastRoomState(roomId);
+  void broadcastRoomState(roomId);
 
   const body: ApiSuccessResponse<{ room: RoomState }> = {
     success: true,
@@ -224,7 +228,7 @@ export async function startGame(req: Request, res: Response): Promise<void> {
     await broadcastGameStarted(io, result.gameId, roomId);
 
     // Broadcast room state update (status = IN_GAME) to all players
-    await broadcastRoomState(roomId);
+    void broadcastRoomState(roomId);
 
     // Notify AI controller about game start so AI players can make moves
     try {
@@ -251,6 +255,9 @@ export async function startGame(req: Request, res: Response): Promise<void> {
     logger.info({ roomId, gameId: result.gameId }, 'Game session created and broadcast');
   } catch (err) {
     logger.error({ err, roomId, gameId: result.gameId }, 'Failed to create game session');
+    // Fail the request — clients must not see a success response
+    // when the game session could not be created.
+    throw err;
   }
 
   logger.info({ roomId, gameId: result.gameId }, 'Game started via API');
@@ -274,7 +281,7 @@ export async function addAIPlayer(req: Request, res: Response): Promise<void> {
 
   logger.info({ roomId, userId: user.userId, difficulty: input.difficulty }, 'AI player added via API');
 
-  await broadcastRoomState(roomId);
+  void broadcastRoomState(roomId);
 
   const body: ApiSuccessResponse<{ room: RoomState }> = {
     success: true,
@@ -294,7 +301,7 @@ export async function removePlayer(req: Request, res: Response): Promise<void> {
 
   logger.info({ roomId, targetUserId, kickedBy: user.userId }, 'Player removed via API');
 
-  await broadcastRoomState(roomId);
+  void broadcastRoomState(roomId);
 
   const body: ApiSuccessResponse<{ room: RoomState }> = {
     success: true,
@@ -314,7 +321,7 @@ export async function updateSettings(req: Request, res: Response): Promise<void>
 
   logger.info({ roomId, userId: user.userId }, 'Settings updated via API');
 
-  await broadcastRoomState(roomId);
+  void broadcastRoomState(roomId);
 
   const body: ApiSuccessResponse<{ room: RoomState }> = {
     success: true,

@@ -195,7 +195,9 @@ export const useRoomStore = create<RoomStore>()(
 
       async toggleReady(roomId, isReady): Promise<void> {
         try {
-          await api.toggleReady(roomId, isReady);
+          const raw = await api.toggleReady(roomId, isReady);
+          const parsed = roomResponseSchema.parse(raw);
+          set({ currentRoom: parsed.data.room as unknown as RoomDetail });
         } catch (err) {
           const message =
             err instanceof ApiError ? err.message : 'Failed to toggle ready';
@@ -225,8 +227,9 @@ export const useRoomStore = create<RoomStore>()(
 
       async addAIPlayer(roomId, difficulty = 'easy'): Promise<void> {
         try {
-          await api.addAI(roomId, difficulty);
-          // Room state update will arrive via Socket.IO broadcast
+          const raw = await api.addAI(roomId, difficulty);
+          const parsed = roomResponseSchema.parse(raw);
+          set({ currentRoom: parsed.data.room as unknown as RoomDetail });
           logger.info({ roomId, difficulty }, 'AI player added');
         } catch (err) {
           const message =

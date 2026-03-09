@@ -52,15 +52,24 @@ export function useSocket(): {
   const addNotification = useUIStore((s) => s.addNotification);
 
   const socketRef = useRef<TypedClientSocket | null>(null);
+  const accessTokenRef = useRef(accessToken);
+
+  // Sync token to ref and update socket auth without full teardown
+  useEffect(() => {
+    accessTokenRef.current = accessToken;
+    if (accessToken) {
+      updateSocketAuth(accessToken);
+    }
+  }, [accessToken]);
 
   useEffect(() => {
-    if (!isAuthenticated || !accessToken) {
+    if (!isAuthenticated || !accessTokenRef.current) {
       disconnectSocket();
       socketRef.current = null;
       return;
     }
 
-    const socket = connectSocket(accessToken);
+    const socket = connectSocket(accessTokenRef.current);
     socketRef.current = socket;
 
     // ── Connection events ────────────────────────────────────────
@@ -87,7 +96,9 @@ export function useSocket(): {
 
     socket.io.on('reconnect', () => {
       logger.info('Socket reconnected');
-      setConnected();
+      // setConnected() is NOT called here — the 'connect' event already fires
+      // on reconnection and increments connectionId. Calling it twice would
+      // trigger duplicate room:join emissions from the lobby page.
     });
 
     socket.io.on('reconnect_failed', () => {
@@ -191,7 +202,6 @@ export function useSocket(): {
     };
   }, [
     isAuthenticated,
-    accessToken,
     setConnected,
     setDisconnected,
     setReconnecting,

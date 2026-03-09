@@ -312,3 +312,38 @@ export async function getMigrationStatus(
     current_version: currentVersion,
   };
 }
+
+// ---------------------------------------------------------------------------
+// CLI Entry Point
+// ---------------------------------------------------------------------------
+
+/**
+ * When invoked directly via `npm run migrate`, connect to the database,
+ * run pending migrations, and exit.
+ */
+async function main(): Promise<void> {
+  // Dynamic import to avoid pulling in full config/database modules
+  // when this file is imported as a library.
+  const { createPool, closePool } = await import('./index.js');
+
+  try {
+    const pool = await createPool();
+    const count = await runMigrations(pool);
+    logger.info({ count }, 'Migration CLI complete');
+    await closePool();
+    process.exit(0);
+  } catch (err) {
+    logger.error({ err }, 'Migration CLI failed');
+    process.exit(1);
+  }
+}
+
+// Only run when executed directly (not when imported as a module)
+const isDirectExecution =
+  import.meta.url === `file://${process.argv[1]}` ||
+  process.argv[1]?.endsWith('migrator.ts') ||
+  process.argv[1]?.endsWith('migrator.js');
+
+if (isDirectExecution) {
+  void main();
+}

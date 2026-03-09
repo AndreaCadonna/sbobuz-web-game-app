@@ -222,6 +222,7 @@ export async function register(req: Request, res: Response): Promise<void> {
     userId: user.id,
     email: user.email,
     username: user.username,
+    displayName: user.displayName,
     sessionId,
   });
   const refreshToken = await generateRefreshToken(user.id, sessionId);
@@ -300,6 +301,7 @@ export async function login(req: Request, res: Response): Promise<void> {
     userId: userWithCreds.id,
     email: userWithCreds.email,
     username: userWithCreds.username,
+    displayName: userWithCreds.displayName,
     sessionId,
   });
   const refreshToken = await generateRefreshToken(userWithCreds.id, sessionId);
@@ -387,6 +389,7 @@ export async function refresh(req: Request, res: Response): Promise<void> {
     userId: user.id,
     email: user.email,
     username: user.username,
+    displayName: user.displayName,
     sessionId: refreshTokenData.sessionId,
   });
 

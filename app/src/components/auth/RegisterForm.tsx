@@ -3,7 +3,7 @@
  */
 'use client';
 
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 import { Button } from '@/components/ui/Button';
@@ -54,9 +54,11 @@ export function RegisterForm(): React.JSX.Element {
     [formData.password],
   );
 
-  if (isAuthenticated) {
-    router.replace('/lobby');
-  }
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.replace('/lobby');
+    }
+  }, [isAuthenticated, router]);
 
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {

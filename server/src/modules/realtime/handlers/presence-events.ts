@@ -144,12 +144,21 @@ async function handleGracePeriodExpired(
   // Remove presence from the room
   await removePresence(roomId, userId);
 
-  // Clear room membership so the user can join/create rooms again
+  // Remove the player from the room's player list AND clear room membership
+  // so the user can join/create rooms again.
   try {
-    const { clearUserCurrentRoom } = await import('../../lobby/room-repository.js');
-    await clearUserCurrentRoom(userId);
-  } catch {
-    logger.warn({ roomId, userId }, 'Failed to clear room membership on grace period expiry');
+    const { leaveRoom } = await import('../../lobby/room-service.js');
+    await leaveRoom(userId, roomId);
+  } catch (err) {
+    // If leaveRoom fails (e.g. room already deleted), fall back to just
+    // clearing the user's current-room pointer.
+    logger.warn({ err, roomId, userId }, 'Failed to remove player from room on grace period expiry, clearing room pointer');
+    try {
+      const { clearUserCurrentRoom } = await import('../../lobby/room-repository.js');
+      await clearUserCurrentRoom(userId);
+    } catch {
+      logger.warn({ roomId, userId }, 'Failed to clear room membership on grace period expiry');
+    }
   }
 
   // Notify remaining room members

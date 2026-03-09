@@ -102,24 +102,20 @@ async function makeRequest<T>(options: RequestOptions): Promise<T> {
 
   let response = await fetch(url, fetchOptions);
 
-  // If 401 and we have refresh capability, try refreshing
-  if (response.status === 401 && requiresAuth && refreshAccessToken && getRefreshToken) {
-    const refreshTokenValue = getRefreshToken();
-    if (refreshTokenValue) {
-      logger.debug('Access token expired, attempting refresh');
-      const newToken = await attemptTokenRefresh();
+  // If 401 and we have refresh capability, try refreshing.
+  // The server uses httpOnly cookies for refresh tokens, so we always
+  // attempt refresh on 401 — no need to check for a stored refresh token.
+  if (response.status === 401 && requiresAuth && refreshAccessToken) {
+    logger.debug('Access token expired, attempting refresh');
+    const newToken = await attemptTokenRefresh();
 
-      if (newToken) {
-        headers['Authorization'] = `Bearer ${newToken}`;
-        response = await fetch(url, { ...fetchOptions, headers });
-      } else {
-        logger.warn('Token refresh failed, triggering auth failure');
-        onAuthFailure?.();
-        throw new ApiError('AUTH_TOKEN_EXPIRED', 'Session expired', 401);
-      }
+    if (newToken) {
+      headers['Authorization'] = `Bearer ${newToken}`;
+      response = await fetch(url, { ...fetchOptions, headers });
     } else {
+      logger.warn('Token refresh failed, triggering auth failure');
       onAuthFailure?.();
-      throw new ApiError('AUTH_REQUIRED', 'Authentication required', 401);
+      throw new ApiError('AUTH_TOKEN_EXPIRED', 'Session expired', 401);
     }
   }
 
@@ -164,11 +160,11 @@ export const api = {
     });
   },
 
-  refreshToken(refreshToken: string): Promise<unknown> {
+  refreshToken(): Promise<unknown> {
+    // The refresh token is sent automatically via httpOnly cookie
     return makeRequest({
       method: 'POST',
       path: '/auth/refresh',
-      body: { refreshToken },
       requiresAuth: false,
     });
   },

@@ -39,7 +39,7 @@ export default function GamePage(): React.JSX.Element {
     clearGameOver,
   } = useGame(gameId);
 
-  const isConnected = useSocketStore((s) => s.isConnected);
+  const isConnected = useSocketStore((s) => s.status === 'connected');
 
   // If the store has a different game or no game, the user navigated directly
   // without a game in progress. Redirect to lobby.
