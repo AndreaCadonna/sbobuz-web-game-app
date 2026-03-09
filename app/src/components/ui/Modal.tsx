@@ -59,19 +59,19 @@ export function Modal({
   return (
     <dialog
       ref={dialogRef}
-      className="fixed inset-0 z-50 m-auto max-h-[85vh] w-full max-w-lg rounded-xl border border-[var(--color-border)] bg-[var(--color-background)] p-0 shadow-2xl backdrop:bg-black/50"
+      className="fixed inset-0 z-50 m-auto max-h-[85vh] w-[calc(100%-2rem)] max-w-lg rounded-2xl border-2 border-[var(--color-border)] bg-[var(--color-background)] p-0 shadow-2xl backdrop:bg-black/60 backdrop:backdrop-blur-sm"
       onClick={handleBackdropClick}
       onKeyDown={handleKeyDown}
       aria-labelledby="modal-title"
     >
-      <div className="flex items-center justify-between border-b border-[var(--color-border)] px-6 py-4">
-        <h2 id="modal-title" className="text-lg font-semibold">
+      <div className="flex items-center justify-between border-b-2 border-[var(--color-border)] px-6 py-4">
+        <h2 id="modal-title" className="font-display text-xl font-bold">
           {title}
         </h2>
         {showCloseButton && (
           <button
             onClick={onClose}
-            className="rounded-md p-1 transition-colors hover:bg-[var(--color-card-bg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+            className="rounded-lg p-1.5 transition-colors hover:bg-[var(--color-card-bg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-400"
             aria-label="Close dialog"
           >
             <svg
@@ -91,7 +91,7 @@ export function Modal({
           </button>
         )}
       </div>
-      <div className="px-6 py-4">{children}</div>
+      <div className="px-6 py-5">{children}</div>
     </dialog>
   );
 }

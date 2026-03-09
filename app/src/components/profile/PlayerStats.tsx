@@ -41,17 +41,19 @@ export function PlayerStats(): React.JSX.Element {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-8">
-        <div className="h-6 w-6 animate-spin rounded-full border-4 border-brand-200 border-t-brand-600" />
-        <span className="ml-2 text-sm text-[var(--color-muted)]">Loading stats...</span>
+      <div className="flex items-center justify-center py-10">
+        <div className="flex flex-col items-center gap-2">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand-200 border-t-brand-600" />
+          <span className="text-sm font-medium text-[var(--color-muted)]">Loading stats...</span>
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="rounded-lg bg-red-50 p-4 text-center dark:bg-red-950" role="alert">
-        <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+      <div className="rounded-2xl bg-red-50 border border-red-200 p-6 text-center dark:bg-red-950/50 dark:border-red-800" role="alert">
+        <p className="text-sm font-medium text-red-600 dark:text-red-400">{error}</p>
         <Button variant="secondary" size="sm" onClick={() => void fetchStats()} className="mt-2">
           Retry
         </Button>
@@ -61,17 +63,17 @@ export function PlayerStats(): React.JSX.Element {
 
   if (!stats) {
     return (
-      <div className="rounded-lg border border-[var(--color-border)] p-6 text-center">
-        <p className="text-[var(--color-muted)]">No stats available. Play some games!</p>
+      <div className="rounded-2xl border-2 border-[var(--color-border)] p-8 text-center">
+        <p className="font-medium text-[var(--color-muted)]">No stats available. Play some games!</p>
       </div>
     );
   }
 
   const statItems = [
     { label: 'Rank', value: `#${String(stats.rank)}`, color: '' },
-    { label: 'Rating', value: String(stats.rating), color: 'text-brand-600 dark:text-brand-400' },
-    { label: 'Wins', value: String(stats.gamesWon), color: 'text-green-600 dark:text-green-400' },
-    { label: 'Losses', value: String(stats.gamesPlayed - stats.gamesWon), color: 'text-red-600 dark:text-red-400' },
+    { label: 'Rating', value: String(stats.rating), color: 'text-gold-600 dark:text-gold-400' },
+    { label: 'Wins', value: String(stats.gamesWon), color: 'text-brand-600 dark:text-brand-400' },
+    { label: 'Losses', value: String(stats.gamesPlayed - stats.gamesWon), color: 'text-red-500 dark:text-red-400' },
     { label: 'Games', value: String(stats.gamesPlayed), color: '' },
     { label: 'Win Rate', value: `${String(Math.round(stats.winRate * 100))}%`, color: '' },
   ];
@@ -81,12 +83,12 @@ export function PlayerStats(): React.JSX.Element {
       {statItems.map((item) => (
         <div
           key={item.label}
-          className="rounded-lg border border-[var(--color-border)] bg-[var(--color-card-bg)] p-4 text-center"
+          className="rounded-2xl border-2 border-[var(--color-border)] bg-[var(--color-card-bg)] p-4 text-center transition-colors hover:border-gold-300/50"
         >
-          <dt className="text-xs font-medium text-[var(--color-muted)] uppercase tracking-wider">
+          <dt className="text-[10px] font-bold text-[var(--color-muted)] uppercase tracking-widest">
             {item.label}
           </dt>
-          <dd className={`mt-1 text-xl font-bold ${item.color}`}>
+          <dd className={`mt-1.5 font-display text-2xl font-bold ${item.color}`}>
             {item.value}
           </dd>
         </div>

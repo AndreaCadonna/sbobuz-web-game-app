@@ -59,17 +59,19 @@ export function LeaderboardTable(): React.JSX.Element {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand-200 border-t-brand-600" />
-        <span className="ml-3 text-[var(--color-muted)]">Loading rankings...</span>
+      <div className="flex items-center justify-center py-16">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-brand-200 border-t-brand-600" />
+          <span className="text-sm font-medium text-[var(--color-muted)]">Loading rankings...</span>
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="rounded-lg bg-red-50 p-6 text-center dark:bg-red-950" role="alert">
-        <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+      <div className="rounded-2xl bg-red-50 border border-red-200 p-8 text-center dark:bg-red-950/50 dark:border-red-800" role="alert">
+        <p className="text-sm font-medium text-red-600 dark:text-red-400">{error}</p>
         <Button
           variant="secondary"
           size="sm"
@@ -84,25 +86,25 @@ export function LeaderboardTable(): React.JSX.Element {
 
   if (entries.length === 0) {
     return (
-      <div className="rounded-lg border border-[var(--color-border)] p-8 text-center">
-        <p className="text-[var(--color-muted)]">No rankings available yet.</p>
+      <div className="rounded-2xl border-2 border-[var(--color-border)] p-12 text-center">
+        <p className="font-medium text-[var(--color-muted)]">No rankings available yet.</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-4">
-      <div className="overflow-x-auto rounded-lg border border-[var(--color-border)]">
+      <div className="overflow-x-auto rounded-2xl border-2 border-[var(--color-border)]">
         <table className="w-full text-sm" aria-label="Leaderboard rankings">
           <thead className="bg-[var(--color-card-bg)] text-left">
             <tr>
-              <th scope="col" className="px-4 py-3 font-medium text-[var(--color-muted)]">Rank</th>
-              <th scope="col" className="px-4 py-3 font-medium text-[var(--color-muted)]">Player</th>
-              <th scope="col" className="px-4 py-3 font-medium text-[var(--color-muted)] text-right">Rating</th>
-              <th scope="col" className="hidden px-4 py-3 font-medium text-[var(--color-muted)] text-right sm:table-cell">W</th>
-              <th scope="col" className="hidden px-4 py-3 font-medium text-[var(--color-muted)] text-right sm:table-cell">L</th>
-              <th scope="col" className="hidden px-4 py-3 font-medium text-[var(--color-muted)] text-right md:table-cell">Games</th>
-              <th scope="col" className="px-4 py-3 font-medium text-[var(--color-muted)] text-right">Win %</th>
+              <th scope="col" className="px-4 py-3.5 font-bold text-xs uppercase tracking-wider text-[var(--color-muted)]">Rank</th>
+              <th scope="col" className="px-4 py-3.5 font-bold text-xs uppercase tracking-wider text-[var(--color-muted)]">Player</th>
+              <th scope="col" className="px-4 py-3.5 font-bold text-xs uppercase tracking-wider text-[var(--color-muted)] text-right">Rating</th>
+              <th scope="col" className="hidden px-4 py-3.5 font-bold text-xs uppercase tracking-wider text-[var(--color-muted)] text-right sm:table-cell">W</th>
+              <th scope="col" className="hidden px-4 py-3.5 font-bold text-xs uppercase tracking-wider text-[var(--color-muted)] text-right sm:table-cell">L</th>
+              <th scope="col" className="hidden px-4 py-3.5 font-bold text-xs uppercase tracking-wider text-[var(--color-muted)] text-right md:table-cell">Games</th>
+              <th scope="col" className="px-4 py-3.5 font-bold text-xs uppercase tracking-wider text-[var(--color-muted)] text-right">Win %</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[var(--color-border)]">
@@ -114,38 +116,38 @@ export function LeaderboardTable(): React.JSX.Element {
                   className={`
                     transition-colors
                     ${isCurrentUser
-                      ? 'bg-brand-50 dark:bg-brand-950/30 font-medium'
+                      ? 'bg-gold-50/60 dark:bg-gold-950/20 font-semibold'
                       : 'hover:bg-[var(--color-card-bg)]'}
                   `}
                 >
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3.5">
                     {entry.rank <= 3 ? (
-                      <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-brand-100 text-xs font-bold text-brand-700 dark:bg-brand-900 dark:text-brand-300">
+                      <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-b from-gold-300 to-gold-500 text-xs font-bold text-gold-950 shadow-sm dark:from-gold-600 dark:to-gold-800 dark:text-gold-100">
                         {String(entry.rank)}
                       </span>
                     ) : (
-                      <span className="text-[var(--color-muted)]">{String(entry.rank)}</span>
+                      <span className="text-[var(--color-muted)] font-medium">{String(entry.rank)}</span>
                     )}
                   </td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3.5">
                     <span className="truncate max-w-[150px] block">
                       {entry.username}
                       {isCurrentUser && (
-                        <span className="ml-1 text-xs text-brand-600 dark:text-brand-400">(you)</span>
+                        <span className="ml-1 text-xs font-bold text-brand-600 dark:text-brand-400">(you)</span>
                       )}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-right font-mono">{String(entry.rating)}</td>
-                  <td className="hidden px-4 py-3 text-right sm:table-cell text-green-600 dark:text-green-400">
+                  <td className="px-4 py-3.5 text-right font-mono font-bold">{String(entry.rating)}</td>
+                  <td className="hidden px-4 py-3.5 text-right sm:table-cell text-brand-600 dark:text-brand-400 font-semibold">
                     {String(entry.gamesWon)}
                   </td>
-                  <td className="hidden px-4 py-3 text-right sm:table-cell text-red-600 dark:text-red-400">
+                  <td className="hidden px-4 py-3.5 text-right sm:table-cell text-red-500 dark:text-red-400 font-semibold">
                     {String(entry.gamesPlayed - entry.gamesWon)}
                   </td>
-                  <td className="hidden px-4 py-3 text-right md:table-cell text-[var(--color-muted)]">
+                  <td className="hidden px-4 py-3.5 text-right md:table-cell text-[var(--color-muted)]">
                     {String(entry.gamesPlayed)}
                   </td>
-                  <td className="px-4 py-3 text-right">
+                  <td className="px-4 py-3.5 text-right font-semibold">
                     {String(Math.round(entry.winRate * 100))}%
                   </td>
                 </tr>
@@ -165,7 +167,7 @@ export function LeaderboardTable(): React.JSX.Element {
         >
           Previous
         </Button>
-        <span className="text-sm text-[var(--color-muted)]">Page {String(page)}</span>
+        <span className="text-sm font-medium text-[var(--color-muted)]">Page {String(page)}</span>
         <Button
           variant="secondary"
           size="sm"

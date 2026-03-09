@@ -17,19 +17,19 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
-    'bg-brand-600 text-white hover:bg-brand-700 focus-visible:ring-brand-500 disabled:bg-brand-300',
+    'bg-gradient-to-b from-gold-500 to-gold-600 text-brand-950 font-semibold hover:from-gold-400 hover:to-gold-500 focus-visible:ring-gold-400 disabled:from-gold-300 disabled:to-gold-400 disabled:text-brand-800/50 shadow-sm hover:shadow-warm',
   secondary:
-    'border border-[var(--color-border)] bg-transparent hover:bg-[var(--color-card-bg)] focus-visible:ring-brand-500',
+    'border-2 border-[var(--color-border)] bg-transparent hover:bg-[var(--color-card-bg)] hover:border-gold-400/50 focus-visible:ring-gold-400',
   danger:
-    'bg-red-600 text-white hover:bg-red-700 focus-visible:ring-red-500 disabled:bg-red-300',
+    'bg-gradient-to-b from-red-500 to-red-600 text-white font-semibold hover:from-red-400 hover:to-red-500 focus-visible:ring-red-400 disabled:from-red-300 disabled:to-red-400 shadow-sm',
   ghost:
-    'bg-transparent hover:bg-[var(--color-card-bg)] focus-visible:ring-brand-500',
+    'bg-transparent hover:bg-[var(--color-card-bg)] focus-visible:ring-gold-400 text-[var(--color-muted)] hover:text-[var(--color-foreground)]',
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
-  sm: 'h-8 px-3 text-sm rounded-md',
-  md: 'h-10 px-4 text-sm rounded-lg',
-  lg: 'h-12 px-6 text-base rounded-lg',
+  sm: 'h-8 px-3 text-sm rounded-lg',
+  md: 'h-10 px-5 text-sm rounded-xl',
+  lg: 'h-12 px-7 text-base rounded-xl',
 };
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
@@ -51,9 +51,11 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         ref={ref}
         disabled={disabled || isLoading}
         className={`
-          inline-flex items-center justify-center font-medium transition-colors
-          focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2
+          inline-flex items-center justify-center font-medium
+          transition-all duration-200 motion-reduce:transition-none
+          focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-background)]
           disabled:pointer-events-none disabled:opacity-50
+          active:scale-[0.97] motion-reduce:active:scale-100
           ${variantClasses[variant]}
           ${sizeClasses[size]}
           ${fullWidth ? 'w-full' : ''}

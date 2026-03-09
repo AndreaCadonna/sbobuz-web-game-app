@@ -71,7 +71,7 @@ export function LoginForm(): React.JSX.Element {
   );
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+    <form onSubmit={handleSubmit} className="space-y-5" noValidate>
       <Input
         label="Email"
         name="email"
@@ -95,12 +95,12 @@ export function LoginForm(): React.JSX.Element {
       />
 
       {loginError && (
-        <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950 dark:text-red-300" role="alert">
+        <div className="rounded-xl bg-red-50 border border-red-200 p-3 text-sm font-medium text-red-700 dark:bg-red-950/50 dark:border-red-800 dark:text-red-300" role="alert">
           {loginError}
         </div>
       )}
 
-      <Button type="submit" fullWidth isLoading={isSubmitting}>
+      <Button type="submit" fullWidth isLoading={isSubmitting} size="lg">
         Sign In
       </Button>
     </form>

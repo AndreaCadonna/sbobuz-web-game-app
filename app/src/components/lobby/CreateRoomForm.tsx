@@ -67,7 +67,7 @@ export function CreateRoomForm(): React.JSX.Element {
   );
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+    <form onSubmit={handleSubmit} className="space-y-5" noValidate>
       <Input
         label="Room Name"
         name="name"
@@ -102,43 +102,44 @@ export function CreateRoomForm(): React.JSX.Element {
         />
       </div>
 
-      <div className="flex items-center gap-6">
-        <label className="flex items-center gap-2 text-sm">
+      <div className="flex items-center gap-6 rounded-xl bg-[var(--color-background)] p-3">
+        <label className="flex items-center gap-2.5 text-sm font-medium cursor-pointer">
           <input
             type="checkbox"
             name="isPrivate"
             checked={formData.isPrivate}
             onChange={handleChange}
-            className="h-4 w-4 rounded border-[var(--color-border)]"
+            className="h-4 w-4 rounded border-[var(--color-border)] accent-brand-600"
           />
           Private Room
         </label>
 
-        <label className="flex items-center gap-2 text-sm">
+        <label className="flex items-center gap-2.5 text-sm font-medium cursor-pointer">
           <input
             type="checkbox"
             name="allowAI"
             checked={formData.allowAI}
             onChange={handleChange}
-            className="h-4 w-4 rounded border-[var(--color-border)]"
+            className="h-4 w-4 rounded border-[var(--color-border)] accent-brand-600"
           />
           Allow AI Players
         </label>
       </div>
 
       {error && (
-        <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950 dark:text-red-300" role="alert">
+        <div className="rounded-xl bg-red-50 border border-red-200 p-3 text-sm font-medium text-red-700 dark:bg-red-950/50 dark:border-red-800 dark:text-red-300" role="alert">
           {error}
         </div>
       )}
 
-      <div className="flex gap-3">
-        <Button type="submit" fullWidth isLoading={isCreatingRoom}>
+      <div className="flex gap-3 pt-2">
+        <Button type="submit" fullWidth isLoading={isCreatingRoom} size="lg">
           Create Room
         </Button>
         <Button
           type="button"
           variant="secondary"
+          size="lg"
           onClick={() => router.back()}
         >
           Cancel

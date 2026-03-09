@@ -2,6 +2,7 @@
  * RoomView — Room detail view with player list, ready/start buttons.
  *
  * Displays the room waiting area where players gather before a game starts.
+ * Players are arranged in a circular layout.
  */
 'use client';
 
@@ -94,9 +95,9 @@ export function RoomView({ room }: RoomViewProps): React.JSX.Element {
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       {/* Room header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">{room.name}</h1>
+          <h1 className="font-display text-2xl font-bold">{room.name}</h1>
           <p className="text-sm text-[var(--color-muted)]">
             {room.players.length}/{room.maxPlayers} players
             {room.isPrivate && ' (Private)'}
@@ -112,29 +113,41 @@ export function RoomView({ room }: RoomViewProps): React.JSX.Element {
       </div>
 
       {/* Room settings */}
-      <div className="rounded-lg border border-[var(--color-border)] p-4">
-        <h2 className="mb-2 text-sm font-medium text-[var(--color-muted)]">Settings</h2>
-        <div className="flex gap-6 text-sm">
-          <span>Turn Timer: {room.settings.turnTimerSeconds}s</span>
-          <span>Max Players: {room.settings.maxPlayers}</span>
-          <span>AI Allowed: {room.settings.allowAI ? 'Yes' : 'No'}</span>
+      <div className="rounded-2xl border-2 border-[var(--color-border)] bg-[var(--color-card-bg)] p-4">
+        <h2 className="mb-2 text-xs font-bold uppercase tracking-wider text-[var(--color-muted)]">Settings</h2>
+        <div className="flex flex-wrap gap-4 text-sm">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[var(--color-muted)]">Timer:</span>
+            <span className="font-semibold">{room.settings.turnTimerSeconds}s</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[var(--color-muted)]">Max:</span>
+            <span className="font-semibold">{room.settings.maxPlayers} players</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="text-[var(--color-muted)]">AI:</span>
+            <span className="font-semibold">{room.settings.allowAI ? 'Allowed' : 'Disabled'}</span>
+          </div>
         </div>
       </div>
 
-      {/* Player list */}
-      <div className="space-y-2" aria-label="Players in room">
+      {/* Player circle layout */}
+      <div
+        className="flex flex-wrap items-center justify-center gap-2 rounded-2xl border-2 border-[var(--color-border)] bg-felt-table p-6 sm:p-8 min-h-[200px]"
+        aria-label="Players in room"
+      >
         {slots}
       </div>
 
       {/* Error display */}
       {error && (
-        <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950 dark:text-red-300" role="alert">
+        <div className="rounded-xl bg-red-50 border border-red-200 p-3 text-sm font-medium text-red-700 dark:bg-red-950/50 dark:border-red-800 dark:text-red-300" role="alert">
           {error}
         </div>
       )}
 
       {/* Action buttons */}
-      <div className="flex gap-3">
+      <div className="flex flex-wrap gap-3">
         {!isHost && (
           <Button
             variant={isReady ? 'secondary' : 'primary'}
@@ -169,8 +182,8 @@ export function RoomView({ room }: RoomViewProps): React.JSX.Element {
 
       {/* Add AI buttons */}
       {canAddAI && (
-        <div className="flex items-center gap-3">
-          <span className="text-sm text-[var(--color-muted)]">Add AI:</span>
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="text-sm font-medium text-[var(--color-muted)]">Add AI:</span>
           <Button variant="secondary" size="sm" onClick={() => handleAddAI('easy')}>
             Easy
           </Button>
@@ -182,7 +195,7 @@ export function RoomView({ room }: RoomViewProps): React.JSX.Element {
 
       {/* Start game hint */}
       {isHost && !canStart && (
-        <p className="text-sm text-[var(--color-muted)]">
+        <p className="text-sm text-[var(--color-muted)] text-center">
           {room.players.length < room.minPlayers
             ? `Need at least ${String(room.minPlayers)} players to start`
             : 'All players must be ready to start'}

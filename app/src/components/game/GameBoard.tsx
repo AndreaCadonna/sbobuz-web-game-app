@@ -1,7 +1,8 @@
 /**
  * GameBoard — Main game board layout component.
  *
- * Arranges all game zones: opponents at top, play/draw piles in center,
+ * Arranges all game zones: opponents at top in a semi-circle arc,
+ * play/draw piles in center on a felt-green table,
  * player's cards at bottom, controls below. Responsive layout.
  * All game state comes from the server via the game store.
  */
@@ -106,60 +107,66 @@ export function GameBoard({
   const selectedCardCount = useUIStore((s) => s.selectedCardIds.length);
 
   return (
-    <div className="flex flex-col h-full min-h-0 gap-3 p-2 sm:p-4">
+    <div className="flex flex-col h-full min-h-0 gap-1.5 p-2 sm:p-3 overflow-y-auto scrollbar-thin">
       {/* Turn indicator */}
-      <TurnIndicator
-        currentPlayerName={currentPlayerName}
-        isMyTurn={isMyTurn}
-        direction={gameState.turnDirection}
-        freePlay={gameState.freePlay}
-        nextCardOverride={gameState.nextCardOverride}
-        phase={gameState.phase}
-      />
+      <div className="shrink-0">
+        <TurnIndicator
+          currentPlayerName={currentPlayerName}
+          isMyTurn={isMyTurn}
+          direction={gameState.turnDirection}
+          freePlay={gameState.freePlay}
+          nextCardOverride={gameState.nextCardOverride}
+          phase={gameState.phase}
+        />
+      </div>
 
-      {/* Opponent zones */}
+      {/* Opponent zones - arranged in a row */}
       {opponents.length > 0 && (
         <div
-          className="grid gap-2 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4"
+          className="shrink-0 flex flex-wrap items-start justify-center gap-1.5"
           aria-label="Opponents"
         >
           {opponents.map((opponent) => (
-            <OpponentZone
+            <div
               key={opponent.id}
-              player={opponent}
-              isCurrentTurn={currentPlayerId === opponent.id}
-              displayName={playerNames[opponent.id] ?? 'Unknown'}
-            />
+              className="min-w-[140px] max-w-[200px] flex-1"
+            >
+              <OpponentZone
+                player={opponent}
+                isCurrentTurn={currentPlayerId === opponent.id}
+                displayName={playerNames[opponent.id] ?? 'Unknown'}
+              />
+            </div>
           ))}
         </div>
       )}
 
-      {/* Center play area */}
-      <div className="flex items-center justify-center gap-6 sm:gap-10 py-4">
+      {/* Center play area - the felt table */}
+      <div className="shrink-0 flex items-center justify-center gap-6 sm:gap-10 py-3 sm:py-4 rounded-2xl bg-felt-table shadow-felt mx-auto w-full max-w-sm">
         <div className="text-center">
           <DrawPile count={gameState.drawPileCount} />
-          <span className="block mt-1 text-xs text-[var(--color-muted)]">Draw</span>
+          <span className="block mt-1 text-[10px] font-bold uppercase tracking-wider text-cream-300/70">Draw</span>
         </div>
         <div className="text-center">
           <PlayPile pile={gameState.playPile} />
-          <span className="block mt-1 text-xs text-[var(--color-muted)]">Pile</span>
+          <span className="block mt-1 text-[10px] font-bold uppercase tracking-wider text-cream-300/70">Pile</span>
         </div>
         {gameState.burnPileCount > 0 && (
           <div className="text-center">
             <div
-              className="flex h-24 w-16 items-center justify-center rounded-lg border border-[var(--color-border)] bg-gray-100 dark:bg-gray-800"
+              className="flex h-24 w-16 items-center justify-center rounded-xl border-2 border-brand-600/40 bg-brand-900/40"
               aria-label={`Burn pile, ${String(gameState.burnPileCount)} cards`}
             >
-              <span className="text-xs text-[var(--color-muted)]">{String(gameState.burnPileCount)}</span>
+              <span className="text-sm font-bold text-cream-300/50">{String(gameState.burnPileCount)}</span>
             </div>
-            <span className="block mt-1 text-xs text-[var(--color-muted)]">Burned</span>
+            <span className="block mt-1 text-[10px] font-bold uppercase tracking-wider text-cream-300/70">Burned</span>
           </div>
         )}
       </div>
 
       {/* My table cards (face-up and face-down) */}
       {myPlayer && (
-        <div className="flex flex-wrap items-center justify-center gap-4">
+        <div className="shrink-0 flex flex-wrap items-center justify-center gap-3">
           {(myPlayer.faceUpCards.length > 0 || myActiveZone === 'faceUp') && (
             <FaceUpCards
               cards={myPlayer.faceUpCards}
@@ -180,20 +187,24 @@ export function GameBoard({
 
       {/* My hand */}
       {myPlayer?.hand && myPlayer.hand.length > 0 && (
-        <PlayerHand cards={myPlayer.hand} isMyTurn={isMyTurn} />
+        <div className="shrink-0">
+          <PlayerHand cards={myPlayer.hand} isMyTurn={isMyTurn} />
+        </div>
       )}
 
-      {/* Controls */}
-      <GameControls
-        isMyTurn={isMyTurn}
-        isSubmitting={isSubmitting}
-        phase={gameState.phase}
-        selectedCardCount={selectedCardCount}
-        actionError={actionError}
-        onPlayCards={onPlayCards}
-        onPickUpPile={onPickUpPile}
-        onDeclareDirection={onDeclareDirection}
-      />
+      {/* Controls - always visible at bottom */}
+      <div className="shrink-0 mt-auto">
+        <GameControls
+          isMyTurn={isMyTurn}
+          isSubmitting={isSubmitting}
+          phase={gameState.phase}
+          selectedCardCount={selectedCardCount}
+          actionError={actionError}
+          onPlayCards={onPlayCards}
+          onPickUpPile={onPickUpPile}
+          onDeclareDirection={onDeclareDirection}
+        />
+      </div>
 
       {/* Game over modal */}
       <GameOverModal
@@ -207,4 +218,3 @@ export function GameBoard({
     </div>
   );
 }
-

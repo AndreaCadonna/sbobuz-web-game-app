@@ -26,50 +26,50 @@ export function TurnIndicator({
   return (
     <div
       className={`
-        rounded-lg border px-4 py-3
-        transition-colors duration-200 motion-reduce:transition-none
+        rounded-xl border-2 px-3 py-2
+        transition-all duration-200 motion-reduce:transition-none
         ${isMyTurn
-          ? 'border-brand-500 bg-brand-50 dark:bg-brand-950/40'
+          ? 'border-gold-400 bg-gold-50/60 shadow-warm dark:bg-gold-950/20 dark:border-gold-600/60'
           : 'border-[var(--color-border)] bg-[var(--color-card-bg)]'}
       `}
       role="status"
       aria-live="polite"
     >
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           {isMyTurn && (
-            <span className="inline-flex h-3 w-3 rounded-full bg-brand-500 animate-pulse motion-reduce:animate-none" />
+            <span className="inline-flex h-3 w-3 rounded-full bg-gold-500 animate-pulse motion-reduce:animate-none ring-2 ring-gold-400/30" />
           )}
-          <span className="text-sm font-medium">
+          <span className="text-sm font-bold">
             {isMyTurn ? 'Your turn' : `${currentPlayerName}'s turn`}
           </span>
         </div>
 
-        <div className="flex items-center gap-3 text-xs text-[var(--color-muted)]">
+        <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
           {/* Direction */}
-          <span className="flex items-center gap-1" aria-label={`Direction: ${directionLabel}`}>
+          <span className="flex items-center gap-1 rounded-full bg-[var(--color-card-bg)] px-2.5 py-1 ring-1 ring-[var(--color-border)]" aria-label={`Direction: ${directionLabel}`}>
             <span aria-hidden="true">{directionArrow}</span>
             {directionLabel}
           </span>
 
           {/* Special states */}
           {freePlay && (
-            <span className="rounded bg-green-100 px-1.5 py-0.5 text-green-700 dark:bg-green-900 dark:text-green-300">
+            <span className="rounded-full bg-brand-100 px-2.5 py-1 text-brand-700 ring-1 ring-brand-200 dark:bg-brand-900/50 dark:text-brand-300 dark:ring-brand-800">
               Free play
             </span>
           )}
           {nextCardOverride === 'lower' && (
-            <span className="rounded bg-amber-100 px-1.5 py-0.5 text-amber-700 dark:bg-amber-900 dark:text-amber-300">
+            <span className="rounded-full bg-gold-100 px-2.5 py-1 text-gold-700 ring-1 ring-gold-200 dark:bg-gold-900/50 dark:text-gold-300 dark:ring-gold-800">
               Must play lower
             </span>
           )}
           {phase === 'awaiting_queen_declaration' && isMyTurn && (
-            <span className="rounded bg-purple-100 px-1.5 py-0.5 text-purple-700 dark:bg-purple-900 dark:text-purple-300">
+            <span className="rounded-full bg-purple-100 px-2.5 py-1 text-purple-700 ring-1 ring-purple-200 dark:bg-purple-900/50 dark:text-purple-300 dark:ring-purple-800">
               Declare direction
             </span>
           )}
           {phase === 'awaiting_post_clear_play' && isMyTurn && (
-            <span className="rounded bg-green-100 px-1.5 py-0.5 text-green-700 dark:bg-green-900 dark:text-green-300">
+            <span className="rounded-full bg-brand-100 px-2.5 py-1 text-brand-700 ring-1 ring-brand-200 dark:bg-brand-900/50 dark:text-brand-300 dark:ring-brand-800">
               Pile cleared! Play any card
             </span>
           )}

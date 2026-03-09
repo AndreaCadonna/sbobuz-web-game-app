@@ -64,7 +64,7 @@ export function GameControls({
   if (phase === 'awaiting_queen_declaration' && isMyTurn) {
     return (
       <div className="space-y-3" role="group" aria-label="Declare direction">
-        <p className="text-sm text-center font-medium">
+        <p className="text-sm text-center font-bold text-purple-700 dark:text-purple-300">
           You played a Queen! Declare the next direction:
         </p>
         <div className="flex items-center justify-center gap-3">
@@ -86,7 +86,7 @@ export function GameControls({
           </Button>
         </div>
         {actionError && (
-          <p className="text-center text-sm text-red-600 dark:text-red-400" role="alert">
+          <p className="text-center text-sm font-medium text-red-600 dark:text-red-400" role="alert">
             {actionError}
           </p>
         )}
@@ -97,7 +97,7 @@ export function GameControls({
   if (!isMyTurn) {
     return (
       <div className="flex items-center justify-center py-3">
-        <p className="text-sm text-[var(--color-muted)]">Waiting for opponent...</p>
+        <p className="text-sm font-medium text-[var(--color-muted)]">Waiting for opponent...</p>
       </div>
     );
   }
@@ -129,7 +129,7 @@ export function GameControls({
       </div>
 
       {actionError && (
-        <p className="text-center text-sm text-red-600 dark:text-red-400" role="alert">
+        <p className="text-center text-sm font-medium text-red-600 dark:text-red-400" role="alert">
           {actionError}
         </p>
       )}

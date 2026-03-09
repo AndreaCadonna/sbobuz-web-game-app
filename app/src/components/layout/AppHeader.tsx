@@ -36,14 +36,14 @@ export function AppHeader(): React.JSX.Element {
   }, []);
 
   return (
-    <header className="border-b border-[var(--color-border)] bg-[var(--color-background)]">
-      <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4">
+    <header className="border-b-2 border-[var(--color-border)] bg-[var(--color-background)]/95 backdrop-blur-sm sticky top-0 z-40">
+      <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6">
         {/* Left: logo and desktop nav */}
-        <div className="flex items-center gap-6">
-          <Link href="/lobby" className="text-lg font-bold" onClick={closeMobileMenu}>
+        <div className="flex items-center gap-8">
+          <Link href="/lobby" className="font-display text-xl font-bold tracking-tight text-brand-700 dark:text-brand-400" onClick={closeMobileMenu}>
             Sbobuz
           </Link>
-          <nav className="hidden items-center gap-4 sm:flex" aria-label="Main navigation">
+          <nav className="hidden items-center gap-1 sm:flex" aria-label="Main navigation">
             {NAV_LINKS.map((link) => {
               const isActive = pathname.startsWith(link.href);
               return (
@@ -51,10 +51,10 @@ export function AppHeader(): React.JSX.Element {
                   key={link.href}
                   href={link.href}
                   className={`
-                    text-sm transition-colors
+                    rounded-lg px-3 py-1.5 text-sm font-medium transition-all duration-200
                     ${isActive
-                      ? 'font-medium text-[var(--color-foreground)]'
-                      : 'text-[var(--color-muted)] hover:text-[var(--color-foreground)]'}
+                      ? 'bg-brand-50 text-brand-700 dark:bg-brand-950/40 dark:text-brand-300'
+                      : 'text-[var(--color-muted)] hover:bg-[var(--color-card-bg)] hover:text-[var(--color-foreground)]'}
                   `}
                   aria-current={isActive ? 'page' : undefined}
                 >
@@ -66,7 +66,7 @@ export function AppHeader(): React.JSX.Element {
         </div>
 
         {/* Right: connection status, user info, mobile menu button */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-4">
           <ConnectionStatus />
 
           {/* Desktop user info */}
@@ -74,13 +74,16 @@ export function AppHeader(): React.JSX.Element {
             <div className="hidden items-center gap-3 sm:flex">
               <Link
                 href="/profile"
-                className="text-sm font-medium hover:text-brand-600 transition-colors"
+                className="flex items-center gap-2 text-sm font-medium hover:text-brand-600 transition-colors"
               >
-                {user.displayName}
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gold-100 text-xs font-bold text-gold-800 dark:bg-gold-900 dark:text-gold-200">
+                  {user.displayName.charAt(0).toUpperCase()}
+                </span>
+                <span className="hidden lg:inline">{user.displayName}</span>
               </Link>
               <button
                 onClick={handleLogout}
-                className="text-sm text-[var(--color-muted)] transition-colors hover:text-[var(--color-foreground)]"
+                className="rounded-lg px-2 py-1 text-sm text-[var(--color-muted)] transition-colors hover:bg-[var(--color-card-bg)] hover:text-[var(--color-foreground)]"
               >
                 Sign Out
               </button>
@@ -90,7 +93,7 @@ export function AppHeader(): React.JSX.Element {
           {/* Mobile hamburger button */}
           <button
             onClick={toggleMobileMenu}
-            className="inline-flex items-center justify-center rounded-md p-2 sm:hidden hover:bg-[var(--color-card-bg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+            className="inline-flex items-center justify-center rounded-lg p-2 sm:hidden hover:bg-[var(--color-card-bg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-400"
             aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
             aria-expanded={isMobileMenuOpen}
           >
@@ -110,7 +113,7 @@ export function AppHeader(): React.JSX.Element {
       {/* Mobile navigation menu */}
       {isMobileMenuOpen && (
         <nav
-          className="border-t border-[var(--color-border)] px-4 py-3 sm:hidden animate-slide-down motion-reduce:animate-none"
+          className="border-t-2 border-[var(--color-border)] px-4 py-3 sm:hidden animate-slide-down motion-reduce:animate-none"
           aria-label="Mobile navigation"
         >
           <div className="space-y-1">
@@ -122,9 +125,9 @@ export function AppHeader(): React.JSX.Element {
                   href={link.href}
                   onClick={closeMobileMenu}
                   className={`
-                    block rounded-md px-3 py-2 text-sm transition-colors
+                    block rounded-xl px-4 py-2.5 text-sm font-medium transition-colors
                     ${isActive
-                      ? 'bg-brand-50 font-medium text-brand-700 dark:bg-brand-950 dark:text-brand-300'
+                      ? 'bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-300'
                       : 'text-[var(--color-muted)] hover:bg-[var(--color-card-bg)] hover:text-[var(--color-foreground)]'}
                   `}
                   aria-current={isActive ? 'page' : undefined}
@@ -137,14 +140,19 @@ export function AppHeader(): React.JSX.Element {
 
           {/* Mobile user actions */}
           {user && (
-            <div className="mt-3 border-t border-[var(--color-border)] pt-3">
-              <p className="px-3 text-sm font-medium">{user.displayName}</p>
+            <div className="mt-3 border-t-2 border-[var(--color-border)] pt-3">
+              <div className="flex items-center gap-2 px-4 py-1">
+                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gold-100 text-xs font-bold text-gold-800 dark:bg-gold-900 dark:text-gold-200">
+                  {user.displayName.charAt(0).toUpperCase()}
+                </span>
+                <p className="text-sm font-medium">{user.displayName}</p>
+              </div>
               <button
                 onClick={() => {
                   closeMobileMenu();
                   handleLogout();
                 }}
-                className="mt-1 block w-full rounded-md px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950"
+                className="mt-1 block w-full rounded-xl px-4 py-2.5 text-left text-sm font-medium text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950"
               >
                 Sign Out
               </button>

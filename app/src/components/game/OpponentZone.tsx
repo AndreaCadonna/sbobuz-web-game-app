@@ -24,22 +24,22 @@ export function OpponentZone({
   return (
     <div
       className={`
-        rounded-lg border p-3
-        transition-colors duration-200 motion-reduce:transition-none
+        rounded-xl border-2 p-2
+        transition-all duration-200 motion-reduce:transition-none
         ${isCurrentTurn
-          ? 'border-brand-500 bg-brand-50/50 dark:bg-brand-950/30'
+          ? 'border-gold-400 bg-gold-50/40 shadow-warm dark:bg-gold-950/20 dark:border-gold-600/60'
           : 'border-[var(--color-border)] bg-[var(--color-card-bg)]'}
       `}
       aria-label={`${displayName}'s cards${isCurrentTurn ? ' (current turn)' : ''}`}
     >
       {/* Opponent name and hand count */}
       <div className="mb-2 flex items-center justify-between">
-        <span className="text-sm font-medium truncate max-w-[120px]">
+        <span className="text-sm font-bold truncate max-w-[120px]">
           {displayName}
         </span>
-        <div className="flex items-center gap-2 text-xs text-[var(--color-muted)]">
+        <div className="flex items-center gap-2 text-xs font-semibold text-[var(--color-muted)]">
           {isCurrentTurn && (
-            <span className="inline-flex h-2 w-2 rounded-full bg-brand-500 animate-pulse motion-reduce:animate-none" aria-label="Current turn" />
+            <span className="inline-flex h-2.5 w-2.5 rounded-full bg-gold-500 animate-pulse motion-reduce:animate-none ring-2 ring-gold-400/30" aria-label="Current turn" />
           )}
           <span aria-label={`${String(player.handCount)} cards in hand`}>
             {String(player.handCount)} in hand
@@ -54,7 +54,7 @@ export function OpponentZone({
             <CardBack key={`hand-${String(i)}`} size="sm" />
           ))}
           {player.handCount > 5 && (
-            <span className="ml-1 text-xs text-[var(--color-muted)]">+{String(player.handCount - 5)}</span>
+            <span className="ml-1 text-xs font-bold text-[var(--color-muted)]">+{String(player.handCount - 5)}</span>
           )}
         </div>
       )}
@@ -62,7 +62,7 @@ export function OpponentZone({
       {/* Face-up cards */}
       {player.faceUpCards.length > 0 && (
         <div className="mb-2">
-          <span className="text-xs text-[var(--color-muted)] mb-1 block">Face-up</span>
+          <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-muted)] mb-1 block">Face-up</span>
           <div className="flex gap-1" aria-label="Face-up cards">
             {player.faceUpCards.map((card) => (
               <Card
@@ -79,7 +79,7 @@ export function OpponentZone({
       {/* Face-down count */}
       {player.faceDownCount > 0 && (
         <div>
-          <span className="text-xs text-[var(--color-muted)] mb-1 block">Face-down</span>
+          <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--color-muted)] mb-1 block">Face-down</span>
           <div className="flex gap-1" aria-label={`${String(player.faceDownCount)} face-down cards`}>
             {Array.from({ length: player.faceDownCount }, (_, i) => (
               <CardBack key={`fd-${String(i)}`} size="sm" />

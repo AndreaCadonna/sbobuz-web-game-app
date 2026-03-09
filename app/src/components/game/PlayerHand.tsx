@@ -37,14 +37,14 @@ export function PlayerHand({ cards, isMyTurn }: PlayerHandProps): React.JSX.Elem
   if (cards.length === 0) {
     return (
       <div className="flex items-center justify-center py-4">
-        <p className="text-sm text-[var(--color-muted)]">No cards in hand</p>
+        <p className="text-sm font-medium text-[var(--color-muted)]">No cards in hand</p>
       </div>
     );
   }
 
   return (
     <div
-      className="flex flex-wrap items-end justify-center gap-1 sm:gap-2 py-2"
+      className="flex flex-wrap items-end justify-center gap-1 sm:gap-1.5 py-2 px-1"
       role="group"
       aria-label="Your hand"
     >

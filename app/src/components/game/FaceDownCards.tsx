@@ -37,7 +37,7 @@ export function FaceDownCards({
   if (count === 0) {
     return (
       <div className="flex items-center justify-center py-2">
-        <p className="text-xs text-[var(--color-muted)]">No face-down cards</p>
+        <p className="text-xs font-medium text-[var(--color-muted)]">No face-down cards</p>
       </div>
     );
   }
@@ -45,14 +45,17 @@ export function FaceDownCards({
   return (
     <div
       className={`
-        flex flex-wrap items-center justify-center gap-1 py-2 px-1 rounded-md
-        ${isActiveZone ? 'bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800' : ''}
+        flex flex-wrap items-center justify-center gap-1 py-2.5 px-3 rounded-xl
+        transition-all duration-200
+        ${isActiveZone
+          ? 'bg-gold-50/60 ring-2 ring-gold-400/40 dark:bg-gold-950/20 dark:ring-gold-700/40'
+          : ''}
       `}
       role="group"
       aria-label="Your face-down cards"
     >
       {isActiveZone && (
-        <span className="w-full text-center text-xs text-amber-600 dark:text-amber-400 mb-1">
+        <span className="w-full text-center text-xs font-bold text-gold-600 dark:text-gold-400 mb-1">
           Blind play: pick a card
         </span>
       )}
@@ -64,11 +67,11 @@ export function FaceDownCards({
           disabled={!canInteract}
           aria-label={`Play face-down card at position ${String(index + 1)}`}
           className={`
-            transition-transform duration-150 motion-reduce:transition-none
+            transition-all duration-200 motion-reduce:transition-none rounded-xl
             ${canInteract
-              ? 'cursor-pointer hover:-translate-y-1 motion-reduce:hover:translate-y-0 hover:ring-2 hover:ring-amber-400 rounded-lg'
+              ? 'cursor-pointer hover:-translate-y-1 motion-reduce:hover:translate-y-0 hover:ring-2 hover:ring-gold-400 hover:shadow-card-hover'
               : 'cursor-default'}
-            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2 rounded-lg
+            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-400 focus-visible:ring-offset-2
           `}
         >
           <CardBack size="sm" />
