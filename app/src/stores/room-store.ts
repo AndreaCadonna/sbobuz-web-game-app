@@ -10,6 +10,7 @@ import { create } from 'zustand';
 import { devtools } from 'zustand/middleware';
 
 import { api, ApiError } from '@/lib/api-client';
+import { getSocket } from '@/lib/socket';
 import { logger } from '@/lib/logger';
 import { useGameStore } from '@/stores/game-store';
 import { roomListResponseSchema, roomResponseSchema } from '@/lib/validators';
@@ -31,6 +32,8 @@ interface RoomState {
   isJoiningRoom: boolean;
   isStartingGame: boolean;
   error: string | null;
+  /** Monotonic version from server to prevent stale state overwrites. */
+  lastStateVersion: number;
 }
 
 interface RoomActions {
@@ -71,6 +74,7 @@ const initialState: RoomState = {
   isJoiningRoom: false,
   isStartingGame: false,
   error: null,
+  lastStateVersion: 0,
 };
 
 export const useRoomStore = create<RoomStore>()(
@@ -111,12 +115,24 @@ export const useRoomStore = create<RoomStore>()(
         try {
           const raw = await api.createRoom(data);
           const parsed = roomResponseSchema.parse(raw);
+          const roomId = parsed.data.room.roomId;
           set({
             currentRoom: parsed.data.room as unknown as RoomDetail,
             isCreatingRoom: false,
           });
-          logger.info({ roomId: parsed.data.room.roomId }, 'Room created');
-          return parsed.data.room.roomId;
+
+          // Join the Socket.IO room so broadcasts reach the host
+          const socket = getSocket();
+          if (socket?.connected) {
+            socket.emit('room:join', { roomId }, (response) => {
+              if (!response.success) {
+                logger.warn({ roomId, error: response.error }, 'Socket room:join failed after create');
+              }
+            });
+          }
+
+          logger.info({ roomId }, 'Room created');
+          return roomId;
         } catch (err) {
           const message =
             err instanceof ApiError ? err.message : 'Failed to create room';
@@ -133,6 +149,19 @@ export const useRoomStore = create<RoomStore>()(
           // Fetch full room details after joining
           await get().fetchRoom(roomId);
           set({ isJoiningRoom: false });
+
+          // Join the Socket.IO room so broadcasts reach this client
+          const socket = getSocket();
+          if (socket?.connected) {
+            socket.emit('room:join', { roomId }, (response) => {
+              if (!response.success) {
+                logger.warn({ roomId, error: response.error }, 'Socket room:join failed');
+              } else {
+                logger.info({ roomId }, 'Socket room joined');
+              }
+            });
+          }
+
           logger.info({ roomId }, 'Joined room');
           return true;
         } catch (err) {
@@ -145,9 +174,19 @@ export const useRoomStore = create<RoomStore>()(
       },
 
       async leaveRoom(roomId): Promise<void> {
+        // Leave the Socket.IO room first so we stop receiving broadcasts
+        const socket = getSocket();
+        if (socket?.connected) {
+          socket.emit('room:leave', { roomId }, (response) => {
+            if (!response.success) {
+              logger.warn({ roomId, error: response.error }, 'Socket room:leave failed');
+            }
+          });
+        }
+
         try {
           await api.leaveRoom(roomId);
-          set({ currentRoom: null });
+          set({ currentRoom: null, lastStateVersion: 0 });
           logger.info({ roomId }, 'Left room');
         } catch (err) {
           logger.warn({ err, roomId }, 'Failed to leave room');
@@ -169,31 +208,11 @@ export const useRoomStore = create<RoomStore>()(
         if (get().isStartingGame) return;
         set({ isStartingGame: true, error: null });
         try {
-          const response = await api.startGame(roomId) as {
-            data?: { gameId?: string; room?: Record<string, unknown> };
-          };
+          await api.startGame(roomId);
           logger.info({ roomId }, 'Game start requested');
-
-          // Update room status from REST response so navigation can trigger
-          // even if socket events are delayed
-          const gameId = response?.data?.gameId;
-          const roomData = response?.data?.room;
-          if (roomData && typeof roomData.status === 'string') {
-            const currentRoom = get().currentRoom;
-            if (currentRoom && currentRoom.roomId === roomId) {
-              set({
-                currentRoom: {
-                  ...currentRoom,
-                  status: roomData.status as RoomDetail['status'],
-                },
-              });
-            }
-          }
-          if (gameId) {
-            // Set gameId directly so navigation triggers immediately;
-            // full game state will arrive via the game:started socket event
-            useGameStore.setState({ gameId });
-          }
+          // Navigation is driven by the game:started socket event which sets
+          // both gameId and gameState atomically — no need to set them here.
+          // The room status update will also arrive via room:state_update.
         } catch (err) {
           const message =
             err instanceof ApiError ? err.message : 'Failed to start game';
@@ -222,6 +241,16 @@ export const useRoomStore = create<RoomStore>()(
           const raw = await api.getRoom(roomId);
           const parsed = roomResponseSchema.parse(raw);
           set({ currentRoom: parsed.data.room as unknown as RoomDetail });
+
+          // Ensure the socket is in the Socket.IO room
+          const socket = getSocket();
+          if (socket?.connected) {
+            socket.emit('room:join', { roomId }, (response) => {
+              if (!response.success) {
+                logger.warn({ roomId, error: response.error }, 'Socket room:join failed on fetch');
+              }
+            });
+          }
         } catch (err) {
           const message =
             err instanceof ApiError ? err.message : 'Failed to load room';
@@ -239,32 +268,27 @@ export const useRoomStore = create<RoomStore>()(
       },
 
       handleRoomStateUpdate(payload): void {
-        const { currentRoom } = get();
+        const { currentRoom, lastStateVersion } = get();
         if (!currentRoom || currentRoom.roomId !== payload.roomId) return;
 
-        // Rebuild players list from the authoritative server payload,
-        // merging with existing local data where available
-        const updatedPlayers = payload.players.map((update) => {
-          const existing = currentRoom.players.find((p) => p.userId === update.userId);
-          if (existing) {
-            return {
-              ...existing,
-              isReady: update.isReady,
-              connectionStatus: update.isConnected ? 'connected' as const : 'disconnected' as const,
-            };
-          }
-          // New player (e.g. AI player added) — create from payload
-          return {
-            userId: update.userId,
-            username: update.username ?? update.userId,
-            displayName: update.username ?? update.userId,
-            isReady: update.isReady,
-            isHost: update.userId === payload.hostUserId,
-            isAI: update.userId.startsWith('ai_'),
-            joinedAt: new Date().toISOString(),
-            connectionStatus: update.isConnected ? 'connected' as const : 'disconnected' as const,
-          };
-        });
+        // Drop stale updates: only apply if version is newer
+        if (payload.version <= lastStateVersion) {
+          logger.debug({ roomId: payload.roomId, version: payload.version, lastVersion: lastStateVersion }, 'Dropping stale room state update');
+          return;
+        }
+
+        // Build players from the authoritative server payload (no inference needed)
+        const updatedPlayers = payload.players.map((p) => ({
+          userId: p.userId,
+          username: p.username,
+          displayName: p.displayName,
+          isReady: p.isReady,
+          isHost: p.isHost,
+          isAI: p.isAI,
+          joinedAt: p.joinedAt,
+          connectionStatus: p.isConnected ? 'connected' as const : 'disconnected' as const,
+          ...(p.aiDifficulty ? { aiDifficulty: p.aiDifficulty } : {}),
+        }));
 
         set({
           currentRoom: {
@@ -273,6 +297,7 @@ export const useRoomStore = create<RoomStore>()(
             status: payload.status as RoomDetail['status'],
             players: updatedPlayers,
           },
+          lastStateVersion: payload.version,
         });
       },
 

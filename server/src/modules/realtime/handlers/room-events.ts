@@ -44,6 +44,9 @@ const roomLeaveSchema = z.object({
 // Helpers
 // ---------------------------------------------------------------------------
 
+/** Monotonic counter for state update versioning (prevents stale overwrites). */
+let roomStateVersion = 0;
+
 /**
  * Build a RoomStateUpdatePayload from a Room and presence data.
  */
@@ -51,16 +54,23 @@ export function buildRoomStatePayload(
   room: Room,
   connectedUserIds?: ReadonlySet<string> | undefined,
 ): RoomStateUpdatePayload {
+  roomStateVersion += 1;
   return {
     roomId: room.roomId,
     players: room.players.map((p) => ({
       userId: p.userId,
       username: p.username,
+      displayName: p.displayName,
       isReady: p.isReady,
       isConnected: p.isAI ? true : (connectedUserIds?.has(p.userId) ?? p.connectionStatus === 'connected'),
+      isHost: p.userId === room.hostId,
+      isAI: p.isAI,
+      joinedAt: p.joinedAt,
+      ...(p.aiDifficulty ? { aiDifficulty: p.aiDifficulty } : {}),
     })),
     hostUserId: room.hostId,
     status: room.status,
+    version: roomStateVersion,
   };
 }
 
@@ -161,10 +171,22 @@ export function handleRoomJoin(
           );
           const roomState = buildRoomStatePayload(room, connectedIds);
 
+          // Fetch game state from session manager if a game is active
+          let gameState = null;
+          try {
+            const { getGameIdForRoom, getSanitizedState } = await import('../../game-engine/session-manager.js');
+            const activeGameId = getGameIdForRoom(roomId);
+            if (activeGameId) {
+              gameState = getSanitizedState(activeGameId, userId) ?? null;
+            }
+          } catch {
+            logger.warn({ roomId, userId }, 'Failed to fetch game state for full sync');
+          }
+
           // Send full state sync to reconnecting player
           socket.emit('state:full_sync', {
             roomState,
-            gameState: null, // Game session manager will handle this in Phase 5
+            gameState,
             presence,
           });
 

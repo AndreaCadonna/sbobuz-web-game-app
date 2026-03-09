@@ -20,6 +20,14 @@ export function RoomList(): React.JSX.Element {
 
   useEffect(() => {
     void fetchRooms();
+
+    // Poll for room list updates every 5 seconds since there is
+    // no socket event for lobby-wide room list changes
+    const interval = setInterval(() => {
+      void fetchRooms();
+    }, 5_000);
+
+    return () => clearInterval(interval);
   }, [fetchRooms]);
 
   const handleJoin = useCallback(
