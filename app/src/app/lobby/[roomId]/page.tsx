@@ -88,9 +88,9 @@ export default function RoomDetailPage(): React.JSX.Element {
 
   if (error) {
     return (
-      <div className="mx-auto max-w-2xl px-4 py-6">
-        <div className="rounded-lg bg-red-50 p-6 text-center dark:bg-red-950" role="alert">
-          <h2 className="text-lg font-semibold text-red-700 dark:text-red-300">
+      <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
+        <div className="rounded-2xl bg-red-50 border border-red-200 p-8 text-center dark:bg-red-950/50 dark:border-red-800" role="alert">
+          <h2 className="font-display text-lg font-bold text-red-700 dark:text-red-300">
             Room Not Found
           </h2>
           <p className="mt-2 text-sm text-red-600 dark:text-red-400">{error}</p>
@@ -101,15 +101,17 @@ export default function RoomDetailPage(): React.JSX.Element {
 
   if (!currentRoom || currentRoom.roomId !== roomId) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand-200 border-t-brand-600" />
-        <span className="ml-3 text-[var(--color-muted)]">Loading room...</span>
+      <div className="flex items-center justify-center py-16">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-brand-200 border-t-brand-600" />
+          <span className="text-sm font-medium text-[var(--color-muted)]">Loading room...</span>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="px-4 py-6">
+    <div className="px-4 py-6 sm:px-6 sm:py-8">
       <RoomView room={currentRoom} />
     </div>
   );

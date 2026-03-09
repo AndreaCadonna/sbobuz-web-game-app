@@ -9,19 +9,24 @@ export default function RegisterPage(): React.JSX.Element {
     <main className="flex min-h-screen items-center justify-center px-4 py-8">
       <div className="w-full max-w-md space-y-6">
         <div className="text-center">
-          <h1 className="text-3xl font-bold">Create Account</h1>
-          <p className="mt-2 text-[var(--color-muted)]">
+          <Link href="/" className="font-display text-3xl font-bold text-brand-700 dark:text-brand-400">
+            Sbobuz
+          </Link>
+          <h1 className="mt-4 font-display text-2xl font-bold">Create Account</h1>
+          <p className="mt-1.5 text-sm text-[var(--color-muted)]">
             Join Sbobuz and start playing
           </p>
         </div>
 
-        <RegisterForm />
+        <div className="rounded-2xl border-2 border-[var(--color-border)] bg-[var(--color-card-bg)] p-6 shadow-card">
+          <RegisterForm />
+        </div>
 
         <p className="text-center text-sm text-[var(--color-muted)]">
           Already have an account?{' '}
           <Link
             href="/login"
-            className="font-medium text-brand-600 hover:text-brand-500"
+            className="font-semibold text-brand-600 hover:text-brand-500 transition-colors"
           >
             Sign in
           </Link>

@@ -15,10 +15,10 @@ export function DrawPile({ count }: DrawPileProps): React.JSX.Element {
   if (count === 0) {
     return (
       <div
-        className="flex h-24 w-16 items-center justify-center rounded-lg border-2 border-dashed border-[var(--color-border)]"
+        className="flex h-24 w-16 items-center justify-center rounded-xl border-2 border-dashed border-[var(--color-border)]/50"
         aria-label="Draw pile (empty)"
       >
-        <span className="text-xs text-[var(--color-muted)]">Empty</span>
+        <span className="text-xs font-medium text-[var(--color-muted)]/50">Empty</span>
       </div>
     );
   }
@@ -43,7 +43,7 @@ export function DrawPile({ count }: DrawPileProps): React.JSX.Element {
       </div>
 
       {/* Count badge */}
-      <div className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-gray-600 text-xs font-bold text-white z-10">
+      <div className="absolute -top-2 -right-2 flex h-6 w-6 items-center justify-center rounded-full bg-brand-700 text-[10px] font-bold text-white ring-2 ring-[var(--color-background)] z-10">
         {String(count)}
       </div>
     </div>

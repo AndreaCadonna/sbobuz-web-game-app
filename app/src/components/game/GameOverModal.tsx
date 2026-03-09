@@ -46,27 +46,27 @@ export function GameOverModal({
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Game Over">
-      <div className="space-y-4 text-center">
+      <div className="space-y-5 text-center">
         {winnerId ? (
           <>
-            <div className="text-4xl" aria-hidden="true">
+            <div className="text-5xl" aria-hidden="true">
               {isCurrentUserWinner ? '\u{1F3C6}' : '\u{1F44F}'}
             </div>
-            <h3 className="text-xl font-bold">
+            <h3 className="font-display text-2xl font-bold">
               {isCurrentUserWinner ? 'You win!' : `${winnerName} wins!`}
             </h3>
           </>
         ) : (
           <>
-            <div className="text-4xl" aria-hidden="true">{'\u274C'}</div>
-            <h3 className="text-xl font-bold">No winner</h3>
+            <div className="text-5xl" aria-hidden="true">{'\u274C'}</div>
+            <h3 className="font-display text-2xl font-bold">No winner</h3>
           </>
         )}
 
-        <p className="text-sm text-[var(--color-muted)]">{reasonLabel}</p>
+        <p className="text-sm font-medium text-[var(--color-muted)]">{reasonLabel}</p>
 
-        <div className="flex justify-center gap-3 pt-4">
-          <Button variant="primary" onClick={handleBackToLobby}>
+        <div className="flex justify-center gap-3 pt-2">
+          <Button variant="primary" size="lg" onClick={handleBackToLobby}>
             Back to Lobby
           </Button>
         </div>

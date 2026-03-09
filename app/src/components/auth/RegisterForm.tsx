@@ -31,9 +31,9 @@ function getPasswordStrength(password: string): {
   if (/[0-9]/.test(password)) score++;
   if (/[^A-Za-z0-9]/.test(password)) score++;
 
-  if (score <= 2) return { level: 'weak', width: 'w-1/3', color: 'bg-red-500' };
-  if (score <= 3) return { level: 'fair', width: 'w-2/3', color: 'bg-yellow-500' };
-  return { level: 'strong', width: 'w-full', color: 'bg-green-500' };
+  if (score <= 2) return { level: 'weak', width: 'w-1/3', color: 'bg-red-400' };
+  if (score <= 3) return { level: 'fair', width: 'w-2/3', color: 'bg-gold-500' };
+  return { level: 'strong', width: 'w-full', color: 'bg-brand-500' };
 }
 
 export function RegisterForm(): React.JSX.Element {
@@ -107,7 +107,7 @@ export function RegisterForm(): React.JSX.Element {
   );
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+    <form onSubmit={handleSubmit} className="space-y-5" noValidate>
       <Input
         label="Email"
         name="email"
@@ -142,7 +142,7 @@ export function RegisterForm(): React.JSX.Element {
         placeholder="How others will see you"
       />
 
-      <div className="space-y-1">
+      <div className="space-y-1.5">
         <Input
           label="Password"
           name="password"
@@ -155,12 +155,12 @@ export function RegisterForm(): React.JSX.Element {
         />
         {formData.password.length > 0 && (
           <div className="flex items-center gap-2">
-            <div className="h-1 flex-1 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
+            <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[var(--color-border)]">
               <div
-                className={`h-full rounded-full transition-all ${passwordStrength.color} ${passwordStrength.width}`}
+                className={`h-full rounded-full transition-all duration-300 ${passwordStrength.color} ${passwordStrength.width}`}
               />
             </div>
-            <span className="text-xs text-[var(--color-muted)] capitalize">
+            <span className="text-xs font-semibold text-[var(--color-muted)] capitalize">
               {passwordStrength.level}
             </span>
           </div>
@@ -179,12 +179,12 @@ export function RegisterForm(): React.JSX.Element {
       />
 
       {registerError && (
-        <div className="rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950 dark:text-red-300" role="alert">
+        <div className="rounded-xl bg-red-50 border border-red-200 p-3 text-sm font-medium text-red-700 dark:bg-red-950/50 dark:border-red-800 dark:text-red-300" role="alert">
           {registerError}
         </div>
       )}
 
-      <Button type="submit" fullWidth isLoading={isSubmitting}>
+      <Button type="submit" fullWidth isLoading={isSubmitting} size="lg">
         Create Account
       </Button>
     </form>

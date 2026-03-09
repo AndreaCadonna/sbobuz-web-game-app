@@ -44,7 +44,7 @@ export function FaceUpCards({
   if (cards.length === 0) {
     return (
       <div className="flex items-center justify-center py-2">
-        <p className="text-xs text-[var(--color-muted)]">No face-up cards</p>
+        <p className="text-xs font-medium text-[var(--color-muted)]">No face-up cards</p>
       </div>
     );
   }
@@ -52,14 +52,17 @@ export function FaceUpCards({
   return (
     <div
       className={`
-        flex flex-wrap items-center justify-center gap-1 py-2 px-1 rounded-md
-        ${isActiveZone ? 'bg-brand-50/50 dark:bg-brand-950/20 border border-brand-200 dark:border-brand-800' : ''}
+        flex flex-wrap items-center justify-center gap-1 py-2.5 px-3 rounded-xl
+        transition-all duration-200
+        ${isActiveZone
+          ? 'bg-brand-50/60 ring-2 ring-brand-400/40 dark:bg-brand-950/20 dark:ring-brand-700/40'
+          : ''}
       `}
       role="group"
       aria-label="Your face-up cards"
     >
       {isActiveZone && (
-        <span className="w-full text-center text-xs text-brand-600 dark:text-brand-400 mb-1">
+        <span className="w-full text-center text-xs font-bold text-brand-600 dark:text-brand-400 mb-1">
           Playing from face-up cards
         </span>
       )}

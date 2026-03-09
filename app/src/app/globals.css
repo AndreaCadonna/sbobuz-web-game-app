@@ -2,37 +2,68 @@
 @tailwind components;
 @tailwind utilities;
 
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Source+Sans+3:wght@300;400;500;600;700&display=swap');
+
 :root {
-  --color-background: #ffffff;
-  --color-foreground: #0f172a;
-  --color-muted: #64748b;
-  --color-border: #e2e8f0;
-  --color-card-bg: #f8fafc;
-  --color-success: #22c55e;
-  --color-warning: #f59e0b;
-  --color-error: #ef4444;
-  --color-info: #3b82f6;
+  --color-background: #fefdf8;
+  --color-foreground: #2c1810;
+  --color-muted: #7a6b5d;
+  --color-border: #e8dcc8;
+  --color-card-bg: #faf4e8;
+  --color-success: #1e9956;
+  --color-warning: #d4a017;
+  --color-error: #c43e2a;
+  --color-info: #2563eb;
+  --color-felt: #0e4730;
+  --color-felt-light: #136e47;
+  --font-heading: 'Playfair Display', Georgia, 'Times New Roman', serif;
+  --font-body: 'Source Sans 3', system-ui, -apple-system, 'Segoe UI', sans-serif;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --color-background: #0f172a;
-    --color-foreground: #f1f5f9;
-    --color-muted: #94a3b8;
-    --color-border: #334155;
-    --color-card-bg: #1e293b;
+    --color-background: #131a24;
+    --color-foreground: #f0e8dc;
+    --color-muted: #9a8b7a;
+    --color-border: #2c3848;
+    --color-card-bg: #1a2332;
+    --color-felt: #0b3a27;
+    --color-felt-light: #0e4730;
   }
 }
 
 body {
   color: var(--color-foreground);
   background: var(--color-background);
-  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--font-body);
+}
+
+/* Heading font utility */
+.font-display {
+  font-family: var(--font-heading);
 }
 
 @layer utilities {
   .text-muted {
     color: var(--color-muted);
+  }
+}
+
+/* Felt table background for game area */
+@layer components {
+  .bg-felt-table {
+    background: radial-gradient(
+      ellipse at center,
+      var(--color-felt-light) 0%,
+      var(--color-felt) 70%
+    );
+  }
+
+  .bg-felt-texture {
+    background-image:
+      radial-gradient(ellipse at center, var(--color-felt-light) 0%, var(--color-felt) 70%),
+      url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    background-size: cover;
   }
 }
 
@@ -71,4 +102,22 @@ body {
   .animate-card-deal {
     animation: cardDeal 0.3s ease-out forwards;
   }
+}
+
+/* Focus styles */
+:focus-visible {
+  outline: 2px solid var(--color-warning);
+  outline-offset: 2px;
+}
+
+/* Custom scrollbar for game area */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 4px;
+}
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 999px;
 }

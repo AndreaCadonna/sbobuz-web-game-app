@@ -17,8 +17,8 @@ const PAGE_SIZE = 15;
 type GameResult = 'win' | 'loss';
 
 const RESULT_LABELS: Record<GameResult, { text: string; color: string }> = {
-  win: { text: 'Win', color: 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950' },
-  loss: { text: 'Loss', color: 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950' },
+  win: { text: 'Win', color: 'text-brand-700 dark:text-brand-300 bg-brand-50 dark:bg-brand-950/50 ring-1 ring-brand-200 dark:ring-brand-800' },
+  loss: { text: 'Loss', color: 'text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950/50 ring-1 ring-red-200 dark:ring-red-800' },
 };
 
 function formatDate(isoString: string): string {
@@ -68,17 +68,19 @@ export function MatchHistory(): React.JSX.Element {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-8">
-        <div className="h-6 w-6 animate-spin rounded-full border-4 border-brand-200 border-t-brand-600" />
-        <span className="ml-2 text-sm text-[var(--color-muted)]">Loading history...</span>
+      <div className="flex items-center justify-center py-10">
+        <div className="flex flex-col items-center gap-2">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand-200 border-t-brand-600" />
+          <span className="text-sm font-medium text-[var(--color-muted)]">Loading history...</span>
+        </div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="rounded-lg bg-red-50 p-4 text-center dark:bg-red-950" role="alert">
-        <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+      <div className="rounded-2xl bg-red-50 border border-red-200 p-6 text-center dark:bg-red-950/50 dark:border-red-800" role="alert">
+        <p className="text-sm font-medium text-red-600 dark:text-red-400">{error}</p>
         <Button variant="secondary" size="sm" onClick={() => void fetchHistory(page)} className="mt-2">
           Retry
         </Button>
@@ -88,8 +90,8 @@ export function MatchHistory(): React.JSX.Element {
 
   if (matches.length === 0) {
     return (
-      <div className="rounded-lg border border-[var(--color-border)] p-6 text-center">
-        <p className="text-[var(--color-muted)]">No matches played yet.</p>
+      <div className="rounded-2xl border-2 border-[var(--color-border)] p-8 text-center">
+        <p className="font-medium text-[var(--color-muted)]">No matches played yet.</p>
       </div>
     );
   }
@@ -104,30 +106,30 @@ export function MatchHistory(): React.JSX.Element {
           return (
             <div
               key={match.gameId}
-              className="flex items-center justify-between rounded-lg border border-[var(--color-border)] px-4 py-3 hover:bg-[var(--color-card-bg)] transition-colors"
+              className="flex flex-col gap-2 rounded-2xl border-2 border-[var(--color-border)] px-4 py-3 hover:bg-[var(--color-card-bg)] hover:border-gold-300/50 transition-all duration-200 sm:flex-row sm:items-center sm:justify-between"
             >
               <div className="flex items-center gap-3">
-                <span className={`inline-flex rounded px-2 py-0.5 text-xs font-medium ${resultStyle.color}`}>
+                <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-bold ${resultStyle.color}`}>
                   {resultStyle.text}
                 </span>
                 <div className="text-sm">
                   <span className="text-[var(--color-muted)]">
-                    Rating: {String(match.ratingAfter)}
+                    Rating: <span className="font-semibold text-[var(--color-foreground)]">{String(match.ratingAfter)}</span>
                   </span>
                 </div>
               </div>
 
               <div className="flex items-center gap-4 text-sm">
                 <span
-                  className={`font-mono font-medium ${
+                  className={`font-mono font-bold ${
                     match.ratingChange >= 0
-                      ? 'text-green-600 dark:text-green-400'
-                      : 'text-red-600 dark:text-red-400'
+                      ? 'text-brand-600 dark:text-brand-400'
+                      : 'text-red-500 dark:text-red-400'
                   }`}
                 >
                   {ratingPrefix}{String(match.ratingChange)}
                 </span>
-                <span className="text-xs text-[var(--color-muted)]">
+                <span className="text-xs font-medium text-[var(--color-muted)]">
                   {formatDate(match.playedAt)}
                 </span>
               </div>
@@ -147,7 +149,7 @@ export function MatchHistory(): React.JSX.Element {
           >
             Previous
           </Button>
-          <span className="text-sm text-[var(--color-muted)]">Page {String(page)}</span>
+          <span className="text-sm font-medium text-[var(--color-muted)]">Page {String(page)}</span>
           <Button
             variant="secondary"
             size="sm"

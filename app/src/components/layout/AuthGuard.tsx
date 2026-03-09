@@ -32,8 +32,11 @@ export function AuthGuard({ children }: AuthGuardProps): React.JSX.Element | nul
 
   if (!isHydrated) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand-200 border-t-brand-600" />
+      <div className="flex min-h-screen items-center justify-center bg-[var(--color-background)]">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-10 w-10 animate-spin rounded-full border-4 border-brand-200 border-t-brand-600" />
+          <span className="text-sm font-medium text-[var(--color-muted)]">Loading...</span>
+        </div>
       </div>
     );
   }

@@ -53,7 +53,7 @@ export default function GamePage(): React.JSX.Element {
   }, [storeGameId, gameId, router]);
 
   // Join the Socket.IO room on each new connection. When navigating from
-  // lobby → game, the layout remount destroys and recreates the socket,
+  // lobby -> game, the layout remount destroys and recreates the socket,
   // so the new connection has no room association. The server requires the
   // socket to be in a room before it will accept game:action events.
   useEffect(() => {
@@ -97,13 +97,13 @@ export default function GamePage(): React.JSX.Element {
   if (!gameState) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand-200 border-t-brand-600" />
-        <p className="text-[var(--color-muted)]">
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-brand-200 border-t-brand-600" />
+        <p className="text-sm font-medium text-[var(--color-muted)]">
           {storeGameId ? 'Loading game...' : 'Waiting for game to start...'}
         </p>
         <button
           onClick={() => router.push('/lobby')}
-          className="text-sm text-brand-600 hover:text-brand-700 underline"
+          className="text-sm font-semibold text-brand-600 hover:text-brand-500 underline underline-offset-2 transition-colors"
         >
           Return to Lobby
         </button>
@@ -115,10 +115,10 @@ export default function GamePage(): React.JSX.Element {
   if (gameState.phase === 'cancelled' && !isGameOver) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-        <p className="text-lg font-semibold">Game was cancelled</p>
+        <p className="font-display text-xl font-bold">Game was cancelled</p>
         <button
           onClick={() => router.push('/lobby')}
-          className="text-sm text-brand-600 hover:text-brand-700 underline"
+          className="text-sm font-semibold text-brand-600 hover:text-brand-500 underline underline-offset-2 transition-colors"
         >
           Return to Lobby
         </button>

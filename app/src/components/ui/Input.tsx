@@ -16,10 +16,10 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
     const inputId = id ?? label.toLowerCase().replace(/\s+/g, '-');
 
     return (
-      <div className="space-y-1">
+      <div className="space-y-1.5">
         <label
           htmlFor={inputId}
-          className="block text-sm font-medium"
+          className="block text-sm font-semibold tracking-wide text-[var(--color-foreground)]"
         >
           {label}
         </label>
@@ -31,16 +31,17 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             error ? `${inputId}-error` : helperText ? `${inputId}-helper` : undefined
           }
           className={`
-            block w-full rounded-lg border bg-transparent px-3 py-2 text-sm
-            transition-colors placeholder:text-[var(--color-muted)]
-            focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-500/20
-            ${error ? 'border-red-500' : 'border-[var(--color-border)]'}
+            block w-full rounded-xl border-2 bg-[var(--color-card-bg)] px-4 py-2.5 text-sm
+            transition-all duration-200 placeholder:text-[var(--color-muted)]/60
+            focus:border-gold-500 focus:outline-none focus:ring-2 focus:ring-gold-400/20
+            focus:bg-[var(--color-background)]
+            ${error ? 'border-red-400' : 'border-[var(--color-border)]'}
             ${className}
           `.trim()}
           {...props}
         />
         {error && (
-          <p id={`${inputId}-error`} className="text-sm text-red-500" role="alert">
+          <p id={`${inputId}-error`} className="text-sm font-medium text-red-500" role="alert">
             {error}
           </p>
         )}

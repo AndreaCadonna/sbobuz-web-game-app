@@ -25,8 +25,8 @@ const SUIT_SYMBOLS: Record<Suit, string> = {
 const SUIT_COLORS: Record<Suit, string> = {
   hearts: 'text-red-600 dark:text-red-400',
   diamonds: 'text-red-600 dark:text-red-400',
-  clubs: 'text-gray-900 dark:text-gray-100',
-  spades: 'text-gray-900 dark:text-gray-100',
+  clubs: 'text-brand-950 dark:text-cream-200',
+  spades: 'text-brand-950 dark:text-cream-200',
 };
 
 // ── Props ────────────────────────────────────────────────────────
@@ -48,9 +48,9 @@ interface SizeConfig {
   center: string;
 }
 
-const SIZE_SM: SizeConfig = { card: 'w-12 h-[4.5rem] rounded-md text-xs', rank: 'text-xs', suit: 'text-sm', center: 'text-lg' };
-const SIZE_MD: SizeConfig = { card: 'w-16 h-24 rounded-lg text-sm', rank: 'text-sm', suit: 'text-base', center: 'text-2xl' };
-const SIZE_LG: SizeConfig = { card: 'w-20 h-[7.5rem] rounded-lg text-base', rank: 'text-base', suit: 'text-lg', center: 'text-3xl' };
+const SIZE_SM: SizeConfig = { card: 'w-12 h-[4.5rem] rounded-lg text-xs', rank: 'text-[10px]', suit: 'text-xs', center: 'text-lg' };
+const SIZE_MD: SizeConfig = { card: 'w-16 h-24 rounded-xl text-sm', rank: 'text-xs', suit: 'text-sm', center: 'text-2xl' };
+const SIZE_LG: SizeConfig = { card: 'w-20 h-[7.5rem] rounded-xl text-base', rank: 'text-sm', suit: 'text-base', center: 'text-3xl' };
 
 function getSizeConfig(size: 'sm' | 'md' | 'lg'): SizeConfig {
   switch (size) {
@@ -101,15 +101,14 @@ export function Card({
         className={`
           ${sizeClass.card}
           relative inline-flex flex-col items-center justify-center
-          border-2 border-gray-400 bg-gradient-to-br from-brand-700 to-brand-900
-          shadow-md
-          select-none
+          border-2 border-brand-700/60 bg-gradient-to-br from-brand-700 via-brand-800 to-brand-950
+          shadow-card select-none
         `}
         aria-label={cardLabel}
         role="img"
       >
-        <div className="absolute inset-1 rounded-sm border border-brand-500/30" />
-        <span className="text-brand-300/50 font-bold" aria-hidden="true">?</span>
+        <div className="absolute inset-1 rounded-md border border-gold-400/20" />
+        <span className="text-gold-400/40 font-bold" aria-hidden="true">?</span>
       </div>
     );
   }
@@ -127,18 +126,17 @@ export function Card({
         className={`
           ${sizeClass.card}
           relative inline-flex flex-col items-center justify-center
-          border-2 bg-white dark:bg-gray-800
-          shadow-md
-          transition-all duration-150 motion-reduce:transition-none
+          border-2 bg-cream-50 dark:bg-[#2a2035]
+          transition-all duration-200 motion-reduce:transition-none
+          opacity-100 disabled:opacity-100
           ${isSelected
-            ? 'border-brand-500 -translate-y-2 ring-2 ring-brand-400 motion-reduce:translate-y-0'
-            : 'border-gray-300 dark:border-gray-600'}
-          ${!isPlayable && !isDisabled ? 'opacity-50' : ''}
-          ${isDisabled ? 'cursor-not-allowed opacity-40' : 'cursor-pointer hover:-translate-y-1 motion-reduce:hover:translate-y-0'}
-          focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2
+            ? 'border-brand-500 -translate-y-2 shadow-card-selected motion-reduce:translate-y-0'
+            : 'border-cream-300 dark:border-cream-700 shadow-card'}
+          ${isDisabled ? 'cursor-not-allowed' : 'cursor-pointer hover:-translate-y-1 hover:shadow-card-hover motion-reduce:hover:translate-y-0'}
+          focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-400 focus-visible:ring-offset-2
         `}
       >
-        <span className="text-lg font-bold bg-gradient-to-r from-red-500 to-purple-500 bg-clip-text text-transparent">
+        <span className="text-lg font-bold bg-gradient-to-r from-red-500 via-gold-500 to-purple-500 bg-clip-text text-transparent">
           JKR
         </span>
       </button>
@@ -160,15 +158,14 @@ export function Card({
       className={`
         ${sizeClass.card}
         relative inline-flex flex-col
-        border-2 bg-white dark:bg-gray-800
-        shadow-md
-        transition-all duration-150 motion-reduce:transition-none
+        border-2 bg-cream-50 dark:bg-[#1e2a38]
+        transition-all duration-200 motion-reduce:transition-none
+        opacity-100 disabled:opacity-100
         ${isSelected
-          ? 'border-brand-500 -translate-y-2 ring-2 ring-brand-400 motion-reduce:translate-y-0'
-          : 'border-gray-300 dark:border-gray-600'}
-        ${!isPlayable && !isDisabled ? 'opacity-50' : ''}
-        ${isDisabled ? 'cursor-not-allowed opacity-40' : 'cursor-pointer hover:-translate-y-1 motion-reduce:hover:translate-y-0'}
-        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 focus-visible:ring-offset-2
+          ? 'border-brand-500 -translate-y-2 shadow-card-selected motion-reduce:translate-y-0'
+          : 'border-cream-300 dark:border-cream-700 shadow-card'}
+        ${isDisabled ? 'cursor-not-allowed' : 'cursor-pointer hover:-translate-y-1 hover:shadow-card-hover motion-reduce:hover:translate-y-0'}
+        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-400 focus-visible:ring-offset-2
       `}
     >
       {/* Top-left rank and suit */}
@@ -205,13 +202,13 @@ export function CardBack({ size = 'md' }: CardBackProps): React.JSX.Element {
       className={`
         ${sizeClass.card}
         relative inline-flex items-center justify-center
-        border-2 border-gray-400 bg-gradient-to-br from-brand-700 to-brand-900
-        shadow-md select-none
+        border-2 border-brand-700/60 bg-gradient-to-br from-brand-700 via-brand-800 to-brand-950
+        shadow-card select-none
       `}
       aria-label="Face-down card"
       role="img"
     >
-      <div className="absolute inset-1 rounded-sm border border-brand-500/30" />
+      <div className="absolute inset-1 rounded-md border border-gold-400/20" />
     </div>
   );
 }
