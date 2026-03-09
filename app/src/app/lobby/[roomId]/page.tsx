@@ -4,6 +4,7 @@ import { useEffect, useRef } from 'react';
 import { useParams } from 'next/navigation';
 
 import { RoomView } from '@/components/lobby/RoomView';
+import { useGameStore } from '@/stores/game-store';
 import { useRoomStore } from '@/stores/room-store';
 import { useSocketStore } from '@/stores/socket-store';
 import { getSocket } from '@/lib/socket';
@@ -67,6 +68,12 @@ export default function RoomDetailPage(): React.JSX.Element {
       const capturedRoomId = roomId;
       queueMicrotask(() => {
         if (!isMountedRef.current && socketRoomRef.current?.roomId === capturedRoomId) {
+          // If a game is active, the player is navigating to the game page —
+          // do NOT leave the room or the server will clear the room association
+          // and game actions will fail with NOT_IN_ROOM.
+          if (useGameStore.getState().gameId) {
+            return;
+          }
           const s = getSocket();
           if (s?.connected) {
             s.emit('room:leave', { roomId: capturedRoomId }, () => {

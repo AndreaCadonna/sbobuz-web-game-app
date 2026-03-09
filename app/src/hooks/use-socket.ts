@@ -2,13 +2,15 @@
  * useSocket — Custom hook for Socket.IO connection management.
  *
  * Connects on mount when authenticated, disconnects on unmount.
- * Routes server events to appropriate Zustand stores.
+ * Routes server events to appropriate Zustand stores via getState()
+ * to keep the socket lifecycle stable (no teardown on handler changes).
  * Handles reconnection with token refresh and heartbeat.
  */
 'use client';
 
 import { useCallback, useEffect, useRef } from 'react';
 
+import { logger } from '@/lib/logger';
 import {
   connectSocket,
   disconnectSocket,
@@ -16,7 +18,6 @@ import {
   updateSocketAuth,
   type TypedClientSocket,
 } from '@/lib/socket';
-import { logger } from '@/lib/logger';
 import { useAuthStore, selectIsAuthenticated } from '@/stores/auth-store';
 import { useGameStore } from '@/stores/game-store';
 import { useRoomStore } from '@/stores/room-store';
@@ -26,30 +27,17 @@ import { useUIStore } from '@/stores/ui-store';
 /**
  * Manages the Socket.IO lifecycle and event routing.
  * Should be mounted once in the authenticated layout.
+ *
+ * Event listeners use getState() to access the latest store handlers
+ * without including them in the effect dependency array. This prevents
+ * the socket from being torn down and reconnected when handlers change,
+ * which would cause missed events (e.g., AI opponent moves).
  */
 export function useSocket(): {
   getSocketInstance: () => TypedClientSocket | null;
 } {
   const isAuthenticated = useAuthStore(selectIsAuthenticated);
   const accessToken = useAuthStore((s) => s.accessToken);
-  const refreshAccessToken = useAuthStore((s) => s.refreshAccessToken);
-
-  const setConnected = useSocketStore((s) => s.setConnected);
-  const setDisconnected = useSocketStore((s) => s.setDisconnected);
-  const setReconnecting = useSocketStore((s) => s.setReconnecting);
-  const setLatency = useSocketStore((s) => s.setLatency);
-
-  const handleRoomStateUpdate = useRoomStore((s) => s.handleRoomStateUpdate);
-  const handlePlayerJoined = useRoomStore((s) => s.handlePlayerJoined);
-  const handlePlayerLeft = useRoomStore((s) => s.handlePlayerLeft);
-
-  const handleGameStarted = useGameStore((s) => s.handleGameStarted);
-  const handleGameStateUpdate = useGameStore((s) => s.handleGameStateUpdate);
-  const handleActionRejected = useGameStore((s) => s.handleActionRejected);
-  const handleGameEnded = useGameStore((s) => s.handleGameEnded);
-  const handleFullSyncGameState = useGameStore((s) => s.handleFullSyncGameState);
-
-  const addNotification = useUIStore((s) => s.addNotification);
 
   const socketRef = useRef<TypedClientSocket | null>(null);
   const accessTokenRef = useRef(accessToken);
@@ -76,22 +64,22 @@ export function useSocket(): {
 
     socket.on('connect', () => {
       logger.info('Socket connected');
-      setConnected();
+      useSocketStore.getState().setConnected();
     });
 
     socket.on('disconnect', (reason) => {
       logger.info({ reason }, 'Socket disconnected');
-      setDisconnected();
+      useSocketStore.getState().setDisconnected();
 
       if (reason === 'io server disconnect') {
         // Server forced disconnect — may need new token
-        addNotification('warning', 'Disconnected from server');
+        useUIStore.getState().addNotification('warning', 'Disconnected from server');
       }
     });
 
     socket.io.on('reconnect_attempt', (attempt) => {
       logger.debug({ attempt }, 'Reconnection attempt');
-      setReconnecting(attempt);
+      useSocketStore.getState().setReconnecting(attempt);
     });
 
     socket.io.on('reconnect', () => {
@@ -103,7 +91,7 @@ export function useSocket(): {
 
     socket.io.on('reconnect_failed', () => {
       logger.error('Socket reconnection failed after max attempts');
-      addNotification('error', 'Connection lost. Please refresh the page.');
+      useUIStore.getState().addNotification('error', 'Connection lost. Please refresh the page.');
     });
 
     // ── Latency measurement ──────────────────────────────────────
@@ -118,7 +106,7 @@ export function useSocket(): {
     // typed event map, so we listen on the engine directly.
     const onPong = (): void => {
       if (pingSentAt > 0) {
-        setLatency(Date.now() - pingSentAt);
+        useSocketStore.getState().setLatency(Date.now() - pingSentAt);
       }
     };
     if (socket.io.engine) {
@@ -131,41 +119,54 @@ export function useSocket(): {
 
     // ── Room events ──────────────────────────────────────────────
 
-    socket.on('room:state_update', handleRoomStateUpdate);
+    socket.on('room:state_update', (payload) => {
+      useRoomStore.getState().handleRoomStateUpdate(payload);
+    });
 
     socket.on('presence:player_joined', (payload) => {
-      handlePlayerJoined(payload);
-      addNotification('info', `${payload.username} joined the room`);
+      useRoomStore.getState().handlePlayerJoined(payload);
+      useUIStore.getState().addNotification('info', `${payload.username} joined the room`);
     });
 
     socket.on('presence:player_left', (payload) => {
-      handlePlayerLeft(payload);
+      useRoomStore.getState().handlePlayerLeft(payload);
     });
 
     socket.on('presence:player_disconnected', (payload) => {
-      addNotification(
+      useUIStore.getState().addNotification(
         'warning',
         `Player disconnected. Grace period: ${Math.round(payload.gracePeriodMs / 1000)}s`,
       );
     });
 
     socket.on('presence:player_reconnected', (payload) => {
-      addNotification('info', `Player ${payload.userId} reconnected`);
+      useUIStore.getState().addNotification('info', `Player ${payload.userId} reconnected`);
     });
 
     // ── Game events ──────────────────────────────────────────────
 
-    socket.on('game:started', handleGameStarted);
-    socket.on('game:state_update', handleGameStateUpdate);
-    socket.on('game:action_rejected', handleActionRejected);
-    socket.on('game:ended', handleGameEnded);
+    socket.on('game:started', (payload) => {
+      useGameStore.getState().handleGameStarted(payload);
+    });
+
+    socket.on('game:state_update', (payload) => {
+      useGameStore.getState().handleGameStateUpdate(payload);
+    });
+
+    socket.on('game:action_rejected', (payload) => {
+      useGameStore.getState().handleActionRejected(payload);
+    });
+
+    socket.on('game:ended', (payload) => {
+      useGameStore.getState().handleGameEnded(payload);
+    });
 
     // ── Sync events ──────────────────────────────────────────────
 
     socket.on('state:full_sync', (payload) => {
       logger.info('Received full state sync');
-      handleRoomStateUpdate(payload.roomState);
-      handleFullSyncGameState(payload.gameState);
+      useRoomStore.getState().handleRoomStateUpdate(payload.roomState);
+      useGameStore.getState().handleFullSyncGameState(payload.gameState);
     });
 
     // ── Error events ─────────────────────────────────────────────
@@ -175,14 +176,14 @@ export function useSocket(): {
 
       if (payload.code === 'AUTH_EXPIRED') {
         // Try refreshing the token and updating socket auth
-        void refreshAccessToken().then((newToken) => {
+        void useAuthStore.getState().refreshAccessToken().then((newToken) => {
           if (newToken) {
             updateSocketAuth(newToken);
             socket.disconnect().connect();
           }
         });
       } else {
-        addNotification('error', payload.message);
+        useUIStore.getState().addNotification('error', payload.message);
       }
     });
 
@@ -190,7 +191,7 @@ export function useSocket(): {
 
     socket.on('server:draining', (payload) => {
       logger.warn({ reason: payload.reason }, 'Server is draining');
-      addNotification(
+      useUIStore.getState().addNotification(
         'warning',
         `Server maintenance. Reconnecting in ${Math.round(payload.reconnectAfterMs / 1000)}s...`,
       );
@@ -200,23 +201,7 @@ export function useSocket(): {
       disconnectSocket();
       socketRef.current = null;
     };
-  }, [
-    isAuthenticated,
-    setConnected,
-    setDisconnected,
-    setReconnecting,
-    setLatency,
-    handleRoomStateUpdate,
-    handlePlayerJoined,
-    handlePlayerLeft,
-    handleGameStarted,
-    handleGameStateUpdate,
-    handleActionRejected,
-    handleGameEnded,
-    handleFullSyncGameState,
-    addNotification,
-    refreshAccessToken,
-  ]);
+  }, [isAuthenticated]);
 
   const getSocketInstance = useCallback(() => {
     return socketRef.current ?? getSocket();
