@@ -44,7 +44,7 @@ export function createAuthRouter(): Router {
   const registerLimiter = createRateLimiter({
     defaultLimit: {
       windowMs: 60 * 60 * 1000, // 1 hour
-      maxRequests: 5,
+      maxRequests: 50,
       keyBy: 'ip',
     },
   });

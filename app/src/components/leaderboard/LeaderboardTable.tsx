@@ -29,11 +29,12 @@ export function LeaderboardTable(): React.JSX.Element {
     setIsLoading(true);
     setError(null);
     try {
-      const raw = await api.getLeaderboard({ page: pageNum, pageSize: PAGE_SIZE });
+      const offset = (pageNum - 1) * PAGE_SIZE;
+      const raw = await api.getLeaderboard({ limit: PAGE_SIZE, offset });
       const parsed = leaderboardResponseSchema.parse(raw);
-      setEntries(parsed.data);
-      setHasNextPage(parsed.meta?.pagination?.hasNextPage ?? false);
-      setHasPreviousPage(parsed.meta?.pagination?.hasPreviousPage ?? false);
+      setEntries(parsed.data.entries);
+      setHasNextPage(parsed.data.entries.length === PAGE_SIZE);
+      setHasPreviousPage(pageNum > 1);
     } catch (err) {
       const message =
         err instanceof ApiError ? err.message : 'Failed to load leaderboard';
@@ -128,7 +129,7 @@ export function LeaderboardTable(): React.JSX.Element {
                   </td>
                   <td className="px-4 py-3">
                     <span className="truncate max-w-[150px] block">
-                      {entry.displayName}
+                      {entry.username}
                       {isCurrentUser && (
                         <span className="ml-1 text-xs text-brand-600 dark:text-brand-400">(you)</span>
                       )}
@@ -136,10 +137,10 @@ export function LeaderboardTable(): React.JSX.Element {
                   </td>
                   <td className="px-4 py-3 text-right font-mono">{String(entry.rating)}</td>
                   <td className="hidden px-4 py-3 text-right sm:table-cell text-green-600 dark:text-green-400">
-                    {String(entry.wins)}
+                    {String(entry.gamesWon)}
                   </td>
                   <td className="hidden px-4 py-3 text-right sm:table-cell text-red-600 dark:text-red-400">
-                    {String(entry.losses)}
+                    {String(entry.gamesPlayed - entry.gamesWon)}
                   </td>
                   <td className="hidden px-4 py-3 text-right md:table-cell text-[var(--color-muted)]">
                     {String(entry.gamesPlayed)}

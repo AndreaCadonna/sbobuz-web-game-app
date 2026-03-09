@@ -11,7 +11,7 @@ import type { ApiErrorResponse } from '@sbobuz/shared';
 import { logger } from './logger';
 
 const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:3001/api/v1';
+  process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:3000/api/v1';
 
 /**
  * Error thrown when an API call fails.
@@ -212,7 +212,15 @@ export const api = {
     return makeRequest({
       method: 'POST',
       path: '/lobby/rooms',
-      body: data,
+      body: {
+        name: data.name,
+        isPrivate: data.isPrivate,
+        settings: {
+          maxPlayers: data.maxPlayers,
+          turnTimerSeconds: data.turnTimerSeconds,
+          allowAI: data.allowAI,
+        },
+      },
     });
   },
 
@@ -231,10 +239,11 @@ export const api = {
     });
   },
 
-  toggleReady(roomId: string): Promise<unknown> {
+  toggleReady(roomId: string, isReady: boolean): Promise<unknown> {
     return makeRequest({
       method: 'POST',
       path: `/lobby/rooms/${roomId}/ready`,
+      body: { isReady },
     });
   },
 
@@ -277,12 +286,12 @@ export const api = {
 
   // Leaderboard
   getLeaderboard(params?: {
-    page?: number;
-    pageSize?: number;
+    limit?: number;
+    offset?: number;
   }): Promise<unknown> {
     const query = new URLSearchParams();
-    if (params?.page) query.set('page', String(params.page));
-    if (params?.pageSize) query.set('pageSize', String(params.pageSize));
+    if (params?.limit) query.set('limit', String(params.limit));
+    if (params?.offset) query.set('offset', String(params.offset));
     const qs = query.toString();
     return makeRequest({
       method: 'GET',
@@ -305,12 +314,10 @@ export const api = {
   },
 
   getMatchHistory(params?: {
-    page?: number;
-    pageSize?: number;
+    limit?: number;
   }): Promise<unknown> {
     const query = new URLSearchParams();
-    if (params?.page) query.set('page', String(params.page));
-    if (params?.pageSize) query.set('pageSize', String(params.pageSize));
+    if (params?.limit) query.set('limit', String(params.limit));
     const qs = query.toString();
     return makeRequest({
       method: 'GET',
@@ -322,7 +329,7 @@ export const api = {
   getProfile(): Promise<unknown> {
     return makeRequest({
       method: 'GET',
-      path: '/users/me',
+      path: '/auth/me',
     });
   },
 };

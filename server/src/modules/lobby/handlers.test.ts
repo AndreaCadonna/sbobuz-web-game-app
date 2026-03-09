@@ -33,6 +33,17 @@ const mockRoomService = {
 
 vi.mock('./room-service.js', () => mockRoomService);
 
+// ---- Mock game session manager ----
+vi.mock('../game-engine/session-manager.js', () => ({
+  createGameSession: vi.fn().mockResolvedValue({ gameId: 'game-1', state: {} }),
+  broadcastGameStarted: vi.fn().mockResolvedValue(undefined),
+}));
+
+// ---- Mock websocket setup ----
+vi.mock('../../infra/websocket/setup.js', () => ({
+  getSocketIOServer: vi.fn().mockReturnValue({}),
+}));
+
 // ---- Import handlers ----
 const {
   createRoom,

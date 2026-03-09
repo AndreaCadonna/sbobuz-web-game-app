@@ -20,7 +20,7 @@ import { getContext } from './context.js';
  * Module names that can appear in log entries.
  * Matches the ModuleName type from the observability spec.
  */
-export type ModuleName = 'auth' | 'lobby' | 'game-engine' | 'realtime' | 'ai' | 'infra' | 'gateway';
+export type ModuleName = 'auth' | 'lobby' | 'game-engine' | 'game-session' | 'realtime' | 'ai' | 'infra' | 'gateway' | 'leaderboard';
 
 /**
  * Log levels configurable per environment.

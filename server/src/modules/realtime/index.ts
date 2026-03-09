@@ -21,7 +21,7 @@ import {
 } from './connection-manager.js';
 import { resetPresenceManager } from './presence-manager.js';
 import { handleRoomJoin, handleRoomLeave } from './handlers/room-events.js';
-import { handleGameAction } from './handlers/game-events.js';
+import { handleGameAction, handleGameRequestState } from './handlers/game-events.js';
 import { handleHeartbeat, handleDisconnect } from './handlers/presence-events.js';
 
 const logger = createModuleLogger('realtime');
@@ -69,6 +69,7 @@ export function initializeRealtimeModule(io: TypedSocketIOServer): void {
 
       // Game events
       socket.on('game:action', handleGameAction(socket, io));
+      socket.on('game:request_state', handleGameRequestState(socket));
 
       // Presence events
       socket.on('presence:heartbeat', handleHeartbeat(socket));

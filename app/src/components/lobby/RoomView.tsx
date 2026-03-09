@@ -5,7 +5,7 @@
  */
 'use client';
 
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 
 import { Button } from '@/components/ui/Button';
@@ -26,7 +26,9 @@ export function RoomView({ room }: RoomViewProps): React.JSX.Element {
   const toggleReady = useRoomStore((s) => s.toggleReady);
   const startGame = useRoomStore((s) => s.startGame);
   const leaveRoom = useRoomStore((s) => s.leaveRoom);
+  const addAIPlayer = useRoomStore((s) => s.addAIPlayer);
   const error = useRoomStore((s) => s.error);
+  const isStartingGame = useRoomStore((s) => s.isStartingGame);
   const gameId = useGameStore((s) => s.gameId);
   const addNotification = useUIStore((s) => s.addNotification);
 
@@ -36,19 +38,24 @@ export function RoomView({ room }: RoomViewProps): React.JSX.Element {
   const isReady = currentPlayer?.isReady ?? false;
 
   const allPlayersReady = useMemo(() => {
-    return room.players.length >= room.minPlayers && room.players.every((p) => p.isReady);
+    const humanPlayers = room.players.filter((p) => !p.isAI);
+    return room.players.length >= room.minPlayers && humanPlayers.every((p) => p.isReady);
   }, [room.players, room.minPlayers]);
 
   const canStart = isHost && allPlayersReady && room.players.length >= room.minPlayers;
+  const canAddAI = isHost && room.settings.allowAI && room.players.length < room.maxPlayers
+    && room.status !== 'IN_GAME';
 
-  // If a game has started, navigate to the game page
-  if (gameId && room.status === 'IN_GAME') {
-    router.push(`/game/${gameId}`);
-  }
+  // Navigate to the game page when socket events update the stores
+  useEffect(() => {
+    if (gameId && room.status === 'IN_GAME') {
+      router.push(`/game/${gameId}`);
+    }
+  }, [gameId, room.status, router]);
 
   const handleToggleReady = useCallback((): void => {
-    void toggleReady(room.roomId);
-  }, [toggleReady, room.roomId]);
+    void toggleReady(room.roomId, !isReady);
+  }, [toggleReady, room.roomId, isReady]);
 
   const handleStartGame = useCallback((): void => {
     void startGame(room.roomId);
@@ -58,6 +65,10 @@ export function RoomView({ room }: RoomViewProps): React.JSX.Element {
     void leaveRoom(room.roomId);
     router.push('/lobby');
   }, [leaveRoom, room.roomId, router]);
+
+  const handleAddAI = useCallback((difficulty: 'easy' | 'medium' = 'easy'): void => {
+    void addAIPlayer(room.roomId, difficulty);
+  }, [addAIPlayer, room.roomId]);
 
   const handleCopyInviteLink = useCallback((): void => {
     const url = `${window.location.origin}/lobby/${room.roomId}?invite=${room.inviteCode}`;
@@ -143,9 +154,9 @@ export function RoomView({ room }: RoomViewProps): React.JSX.Element {
             <Button
               variant="primary"
               onClick={handleStartGame}
-              disabled={!canStart}
+              disabled={!canStart || isStartingGame}
             >
-              Start Game
+              {isStartingGame ? 'Starting...' : 'Start Game'}
             </Button>
           </>
         )}
@@ -154,6 +165,19 @@ export function RoomView({ room }: RoomViewProps): React.JSX.Element {
           Leave Room
         </Button>
       </div>
+
+      {/* Add AI buttons */}
+      {canAddAI && (
+        <div className="flex items-center gap-3">
+          <span className="text-sm text-[var(--color-muted)]">Add AI:</span>
+          <Button variant="secondary" size="sm" onClick={() => handleAddAI('easy')}>
+            Easy
+          </Button>
+          <Button variant="secondary" size="sm" onClick={() => handleAddAI('medium')}>
+            Medium
+          </Button>
+        </div>
+      )}
 
       {/* Start game hint */}
       {isHost && !canStart && (

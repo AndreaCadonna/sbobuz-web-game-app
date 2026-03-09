@@ -24,7 +24,7 @@ import { createAuthRouter } from './modules/auth/routes.js';
 import { createLobbyRouter } from './modules/lobby/routes.js';
 import { createLeaderboardRouter } from './modules/leaderboard/routes.js';
 import { initializeRealtimeModule, shutdownRealtimeModule, setGameSessionProvider } from './modules/realtime/index.js';
-import { createGameSessionProvider, snapshotAllSessions, resetSessionManager } from './modules/game-engine/session-manager.js';
+import { createGameSessionProvider, snapshotAllSessions, resetSessionManager, applyAction as sessionApplyAction, getGameState as sessionGetGameState } from './modules/game-engine/session-manager.js';
 import { initLogger, createModuleLogger } from './shared/logger.js';
 import { errorHandler } from './shared/middleware/error-handler.js';
 import { createHealthRouter } from './shared/middleware/health.js';
@@ -117,6 +117,43 @@ export function createApp(config: ServerConfig): Express {
 }
 
 /**
+ * Adapter: wraps session-manager's applyAction for the AI controller callback.
+ * AI controller expects { accepted: true; newState } | { accepted: false; reason: string }.
+ * Also broadcasts state update to all players via Socket.IO after a successful action.
+ */
+function applyActionForAI(
+  gameId: string,
+  action: import('@sbobuz/shared').GameAction,
+): { accepted: true; newState: import('@sbobuz/shared').GameState } | { accepted: false; reason: string } {
+  const result = sessionApplyAction(gameId, action);
+  if (result.accepted) {
+    // Broadcast updated state to all players (async, best-effort)
+    void (async () => {
+      try {
+        const { getSocketIOServer } = await import('./infra/websocket/setup.js');
+        const { broadcastStateToRoom, getSession } = await import('./modules/game-engine/session-manager.js');
+        const session = getSession(gameId);
+        if (session) {
+          const io = getSocketIOServer();
+          await broadcastStateToRoom(io, gameId, session.roomId, action);
+        }
+      } catch {
+        // Best-effort broadcast
+      }
+    })();
+    return { accepted: true, newState: result.newState };
+  }
+  return { accepted: false, reason: result.error.message };
+}
+
+/**
+ * Adapter: wraps session-manager's getGameState for the AI controller callback.
+ */
+function getGameStateForAI(gameId: string): import('@sbobuz/shared').GameState | undefined {
+  return sessionGetGameState(gameId);
+}
+
+/**
  * Start the server: initialize all infrastructure, create the HTTP server,
  * and listen on the configured port.
  *
@@ -164,7 +201,18 @@ export async function startServer(): Promise<{ server: Server; config: ServerCon
   setGameSessionProvider(gameSessionProvider);
   logger.info('Game session manager wired to realtime module');
 
-  // 10. Initialize realtime module (registers event handlers, starts heartbeat)
+  // 10. Register AI controller callbacks
+  const { registerCallbacks: registerAICallbacks } = await import('./modules/ai/controller.js');
+  registerAICallbacks(
+    (gameId, action) => {
+      const result = applyActionForAI(gameId, action);
+      return result;
+    },
+    (gameId) => getGameStateForAI(gameId),
+  );
+  logger.info('AI controller callbacks registered');
+
+  // 11. Initialize realtime module (registers event handlers, starts heartbeat)
   initializeRealtimeModule(io);
   logger.info('Realtime module initialized');
 

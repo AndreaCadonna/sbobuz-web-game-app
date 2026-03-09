@@ -65,7 +65,8 @@ export type ValidationErrorCode =
   | 'PILE_EMPTY'
   // DECLARE_DIRECTION specific
   | 'INVALID_DIRECTION'
-  | 'NOT_QUEEN_PLAYER';
+  | 'NOT_QUEEN_PLAYER'
+  | 'GAME_NOT_IN_PROGRESS';
 
 /**
  * Result of validating a game action.

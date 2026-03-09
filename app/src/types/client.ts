@@ -207,6 +207,10 @@ export interface ClientToServerEvents {
     payload: GameActionPayload,
     callback: (response: GameActionResponse) => void,
   ) => void;
+  'game:request_state': (
+    payload: { gameId: string },
+    callback: (response: { success: boolean; state?: SanitizedGameState; error?: string }) => void,
+  ) => void;
   'presence:heartbeat': () => void;
 }
 
@@ -218,7 +222,7 @@ export interface AuthenticatedUser {
   readonly username: string;
   readonly displayName: string;
   readonly avatarUrl: string | null;
-  readonly createdAt: string;
+  readonly createdAt: string | null;
 }
 
 export interface AuthTokens {

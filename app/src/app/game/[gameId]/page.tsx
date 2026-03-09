@@ -12,6 +12,9 @@ import { useParams, useRouter } from 'next/navigation';
 import { GameBoard } from '@/components/game/GameBoard';
 import { useGame } from '@/hooks/use-game';
 import { useGameStore } from '@/stores/game-store';
+import { useSocketStore } from '@/stores/socket-store';
+import { getSocket } from '@/lib/socket';
+import { logger } from '@/lib/logger';
 
 export default function GamePage(): React.JSX.Element {
   const params = useParams();
@@ -36,6 +39,8 @@ export default function GamePage(): React.JSX.Element {
     clearGameOver,
   } = useGame(gameId);
 
+  const isConnected = useSocketStore((s) => s.isConnected);
+
   // If the store has a different game or no game, the user navigated directly
   // without a game in progress. Redirect to lobby.
   useEffect(() => {
@@ -43,6 +48,28 @@ export default function GamePage(): React.JSX.Element {
       router.push('/lobby');
     }
   }, [storeGameId, gameId, router]);
+
+  // Request game state from server when we have a gameId but no state yet
+  // (e.g. socket reconnected after missing the game:started broadcast)
+  useEffect(() => {
+    if (gameState || !isConnected) return;
+
+    const socket = getSocket();
+    if (!socket?.connected) return;
+
+    logger.info({ gameId }, 'Requesting game state from server');
+    socket.emit('game:request_state', { gameId }, (response) => {
+      if (response.success && response.state) {
+        logger.info({ gameId }, 'Received game state from server');
+        useGameStore.getState().handleGameStarted({
+          gameId,
+          initialState: response.state,
+        });
+      } else {
+        logger.warn({ gameId, error: response.error }, 'Failed to get game state');
+      }
+    });
+  }, [gameId, gameState, isConnected]);
 
   // Loading state: waiting for game state from server
   if (!gameState) {

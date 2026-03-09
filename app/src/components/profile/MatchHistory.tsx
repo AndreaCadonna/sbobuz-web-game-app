@@ -14,13 +14,11 @@ import { matchHistoryResponseSchema, type MatchHistoryEntry } from '@/lib/valida
 
 const PAGE_SIZE = 15;
 
-type GameResult = 'win' | 'loss' | 'draw' | 'cancelled';
+type GameResult = 'win' | 'loss';
 
 const RESULT_LABELS: Record<GameResult, { text: string; color: string }> = {
   win: { text: 'Win', color: 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950' },
   loss: { text: 'Loss', color: 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950' },
-  draw: { text: 'Draw', color: 'text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-900' },
-  cancelled: { text: 'Cancelled', color: 'text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950' },
 };
 
 function formatDate(isoString: string): string {
@@ -37,13 +35,6 @@ function formatDate(isoString: string): string {
   }
 }
 
-function formatDuration(seconds: number | undefined): string {
-  if (seconds === undefined) return '--';
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  return `${String(mins)}m ${String(secs)}s`;
-}
-
 export function MatchHistory(): React.JSX.Element {
   const [matches, setMatches] = useState<MatchHistoryEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -56,11 +47,11 @@ export function MatchHistory(): React.JSX.Element {
     setIsLoading(true);
     setError(null);
     try {
-      const raw = await api.getMatchHistory({ page: pageNum, pageSize: PAGE_SIZE });
+      const raw = await api.getMatchHistory({ limit: PAGE_SIZE });
       const parsed = matchHistoryResponseSchema.parse(raw);
-      setMatches(parsed.data);
-      setHasNextPage(parsed.meta?.pagination?.hasNextPage ?? false);
-      setHasPreviousPage(parsed.meta?.pagination?.hasPreviousPage ?? false);
+      setMatches(parsed.data.history);
+      setHasNextPage(false);
+      setHasPreviousPage(pageNum > 1);
     } catch (err) {
       const message =
         err instanceof ApiError ? err.message : 'Failed to load match history';
@@ -121,17 +112,12 @@ export function MatchHistory(): React.JSX.Element {
                 </span>
                 <div className="text-sm">
                   <span className="text-[var(--color-muted)]">
-                    vs {String(match.opponentCount)} opponent{match.opponentCount !== 1 ? 's' : ''}
+                    Rating: {String(match.ratingAfter)}
                   </span>
                 </div>
               </div>
 
               <div className="flex items-center gap-4 text-sm">
-                {match.duration !== undefined && (
-                  <span className="hidden text-[var(--color-muted)] sm:inline">
-                    {formatDuration(match.duration)}
-                  </span>
-                )}
                 <span
                   className={`font-mono font-medium ${
                     match.ratingChange >= 0
