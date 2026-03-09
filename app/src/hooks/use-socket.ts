@@ -96,18 +96,26 @@ export function useSocket(): {
     });
 
     // ── Latency measurement ──────────────────────────────────────
-    // Socket.IO engine pings the server; we measure round-trip time
-    // by tracking the ping event and using the reconnect/open timing.
+    // Track actual round-trip time by recording when the Manager sends
+    // a ping and measuring how long until the engine receives the pong.
 
+    let pingSentAt = 0;
     socket.io.on('ping', () => {
-      // The manager emits 'ping' right before sending a probe packet.
-      // We can approximate latency from the engine's ping interval.
-      if (socket.io.engine) {
-        const transport = socket.io.engine as unknown as { pingTimeout?: number };
-        if (typeof transport.pingTimeout === 'number') {
-          setLatency(transport.pingTimeout);
-        }
+      pingSentAt = Date.now();
+    });
+    // The Engine.IO transport emits 'pong' but it's not in the Manager's
+    // typed event map, so we listen on the engine directly.
+    const onPong = (): void => {
+      if (pingSentAt > 0) {
+        setLatency(Date.now() - pingSentAt);
       }
+    };
+    if (socket.io.engine) {
+      socket.io.engine.on('pong', onPong);
+    }
+    // Engine may be created after the Manager connects
+    socket.io.on('open', () => {
+      socket.io.engine?.on('pong', onPong);
     });
 
     // ── Room events ──────────────────────────────────────────────

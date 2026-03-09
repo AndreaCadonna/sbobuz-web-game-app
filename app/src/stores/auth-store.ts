@@ -10,6 +10,7 @@ import { create } from 'zustand';
 import { devtools, persist } from 'zustand/middleware';
 
 import { api, ApiError, registerAuthInterceptor } from '@/lib/api-client';
+import { disconnectSocket } from '@/lib/socket';
 import { logger } from '@/lib/logger';
 import { authResponseSchema, refreshResponseSchema } from '@/lib/validators';
 import type { AuthenticatedUser } from '@/types/client';
@@ -123,6 +124,10 @@ export const useAuthStore = create<AuthStore>()(
         },
 
         async logout(): Promise<void> {
+          // Disconnect socket before clearing auth state to prevent
+          // the socket from lingering with an invalid token
+          disconnectSocket();
+
           try {
             await api.logout();
           } catch (err) {
