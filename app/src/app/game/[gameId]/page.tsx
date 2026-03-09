@@ -12,6 +12,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { GameBoard } from '@/components/game/GameBoard';
 import { useGame } from '@/hooks/use-game';
 import { useGameStore } from '@/stores/game-store';
+import { useRoomStore } from '@/stores/room-store';
 import { useSocketStore } from '@/stores/socket-store';
 import { getSocket } from '@/lib/socket';
 import { logger } from '@/lib/logger';
@@ -39,7 +40,9 @@ export default function GamePage(): React.JSX.Element {
     clearGameOver,
   } = useGame(gameId);
 
+  const roomId = useRoomStore((s) => s.currentRoom?.roomId ?? null);
   const isConnected = useSocketStore((s) => s.status === 'connected');
+  const connectionId = useSocketStore((s) => s.connectionId);
 
   // If the store has a different game or no game, the user navigated directly
   // without a game in progress. Redirect to lobby.
@@ -49,10 +52,29 @@ export default function GamePage(): React.JSX.Element {
     }
   }, [storeGameId, gameId, router]);
 
-  // Request game state from server when we have a gameId but no state yet
-  // (e.g. socket reconnected after missing the game:started broadcast)
+  // Join the Socket.IO room on each new connection. When navigating from
+  // lobby → game, the layout remount destroys and recreates the socket,
+  // so the new connection has no room association. The server requires the
+  // socket to be in a room before it will accept game:action events.
   useEffect(() => {
-    if (gameState || !isConnected) return;
+    if (!isConnected || !roomId) return;
+
+    const socket = getSocket();
+    if (!socket?.connected) return;
+
+    socket.emit('room:join', { roomId }, (response) => {
+      if (response.success) {
+        logger.info({ roomId }, 'Socket joined room for game');
+      } else {
+        logger.warn({ roomId, error: response.error }, 'Socket room:join failed on game page');
+      }
+    });
+  }, [connectionId, roomId, isConnected]);
+
+  // Re-sync authoritative state on each active socket connection. This covers
+  // missed broadcasts during route transitions, including an opening AI move.
+  useEffect(() => {
+    if (!isConnected) return;
 
     const socket = getSocket();
     if (!socket?.connected) return;
@@ -69,7 +91,7 @@ export default function GamePage(): React.JSX.Element {
         logger.warn({ gameId, error: response.error }, 'Failed to get game state');
       }
     });
-  }, [gameId, gameState, isConnected]);
+  }, [connectionId, gameId, isConnected]);
 
   // Loading state: waiting for game state from server
   if (!gameState) {
