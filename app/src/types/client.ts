@@ -76,10 +76,12 @@ export interface RoomStateUpdatePayload {
     isConnected: boolean;
     isHost: boolean;
     isAI: boolean;
-    aiDifficulty?: string;
+    joinedAt: string;
+    aiDifficulty?: 'easy' | 'medium' | 'hard' | undefined;
   }>;
   readonly hostUserId: string;
   readonly status: string;
+  readonly version: number;
 }
 
 export interface GameStateUpdatePayload {
@@ -131,8 +133,20 @@ export interface PlayerReconnectedPayload {
   readonly userId: string;
 }
 
+export type SocketErrorCode =
+  | 'AUTH_FAILED'
+  | 'AUTH_EXPIRED'
+  | 'ROOM_NOT_FOUND'
+  | 'ROOM_FULL'
+  | 'NOT_IN_ROOM'
+  | 'GAME_NOT_FOUND'
+  | 'NOT_YOUR_TURN'
+  | 'INVALID_ACTION'
+  | 'RATE_LIMITED'
+  | 'INTERNAL_ERROR';
+
 export interface SocketErrorPayload {
-  readonly code: string;
+  readonly code: SocketErrorCode;
   readonly message: string;
 }
 

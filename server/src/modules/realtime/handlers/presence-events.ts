@@ -178,7 +178,32 @@ async function handleGracePeriodExpired(
     io.to(roomId).emit('room:state_update', roomState);
   }
 
-  // TODO: Notify Game Session Manager to cancel the game
-  // This will be implemented when the Game Session Manager is built.
-  // gameSessionManager.handlePlayerDisconnectTimeout(roomId, userId);
+  // Cancel the game if one is active in this room
+  try {
+    const { handlePlayerDisconnectTimeout, getGameIdForRoom, getSanitizedState } = await import(
+      '../../game-engine/session-manager.js'
+    );
+    const gameId = getGameIdForRoom(roomId);
+    if (gameId) {
+      const result = handlePlayerDisconnectTimeout(roomId, userId);
+      if (result?.accepted) {
+        // Broadcast game:ended to the room
+        const { sanitizeStateForPlayer } = await import('../../game-engine/index.js');
+        const finalState = getSanitizedState(gameId, userId);
+        if (finalState) {
+          io.to(roomId).emit('game:ended', {
+            gameId,
+            result: {
+              winnerId: '',
+              reason: 'cancelled',
+              finalState,
+            },
+          });
+        }
+        logger.info({ roomId, userId, gameId }, 'Game cancelled due to disconnect timeout');
+      }
+    }
+  } catch (err) {
+    logger.warn({ err, roomId, userId }, 'Failed to cancel game on disconnect timeout');
+  }
 }

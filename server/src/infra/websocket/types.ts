@@ -97,10 +97,12 @@ export interface RoomStateUpdatePayload {
     isConnected: boolean;
     isHost: boolean;
     isAI: boolean;
-    aiDifficulty?: string;
+    joinedAt: string;
+    aiDifficulty?: 'easy' | 'medium' | 'hard' | undefined;
   }>;
   readonly hostUserId: string;
   readonly status: string;
+  readonly version: number;
 }
 
 /** Game action request payload. */

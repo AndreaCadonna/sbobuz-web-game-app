@@ -30,6 +30,7 @@ export function RoomView({ room }: RoomViewProps): React.JSX.Element {
   const error = useRoomStore((s) => s.error);
   const isStartingGame = useRoomStore((s) => s.isStartingGame);
   const gameId = useGameStore((s) => s.gameId);
+  const gameState = useGameStore((s) => s.gameState);
   const addNotification = useUIStore((s) => s.addNotification);
 
   const currentUserId = user?.id ?? '';
@@ -46,12 +47,12 @@ export function RoomView({ room }: RoomViewProps): React.JSX.Element {
   const canAddAI = isHost && room.settings.allowAI && room.players.length < room.maxPlayers
     && room.status !== 'IN_GAME';
 
-  // Navigate to the game page when socket events update the stores
+  // Navigate to the game page when game:started socket event provides both gameId and state
   useEffect(() => {
-    if (gameId && room.status === 'IN_GAME') {
+    if (gameId && gameState) {
       router.push(`/game/${gameId}`);
     }
-  }, [gameId, room.status, router]);
+  }, [gameId, gameState, router]);
 
   const handleToggleReady = useCallback((): void => {
     void toggleReady(room.roomId, !isReady);
