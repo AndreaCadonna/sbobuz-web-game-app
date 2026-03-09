@@ -29,6 +29,7 @@ export interface GenerateAccessTokenPayload {
   readonly userId: string;
   readonly email: string;
   readonly username: string;
+  readonly displayName: string;
   readonly sessionId: string;
 }
 
@@ -39,6 +40,7 @@ export interface DecodedAccessToken {
   readonly sub: string;
   readonly email: string;
   readonly username: string;
+  readonly displayName?: string;
   readonly sessionId: string;
   readonly iat: number;
   readonly exp: number;
@@ -60,6 +62,7 @@ export function generateAccessToken(payload: GenerateAccessTokenPayload): string
     sub: payload.userId,
     email: payload.email,
     username: payload.username,
+    displayName: payload.displayName,
     sessionId: payload.sessionId,
     type: 'access' as const,
     jti: randomUUID(),

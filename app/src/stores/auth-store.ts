@@ -133,12 +133,11 @@ export const useAuthStore = create<AuthStore>()(
         },
 
         async refreshAccessToken(): Promise<string | null> {
-          const { refreshToken: currentRefreshToken } = get();
-          if (!currentRefreshToken) return null;
-
           set({ isRefreshing: true });
           try {
-            const raw = await api.refreshToken(currentRefreshToken);
+            // The refresh token is sent automatically via httpOnly cookie
+            // (credentials: 'include' in fetch). No body token needed.
+            const raw = await api.refreshToken();
             const parsed = refreshResponseSchema.parse(raw);
             const { accessToken } = parsed.data;
             set({

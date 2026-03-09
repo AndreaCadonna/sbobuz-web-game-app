@@ -260,6 +260,10 @@ export function getSanitizedState(
   const session = activeSessions.get(gameId);
   if (!session) return undefined;
 
+  // Only return state to actual game participants
+  const isParticipant = session.state.turnOrder.includes(playerId);
+  if (!isParticipant) return undefined;
+
   return sanitizeStateForPlayer(session.state, playerId);
 }
 

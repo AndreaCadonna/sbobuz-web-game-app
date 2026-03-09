@@ -16,6 +16,7 @@ import type { ConnectionStatus } from '@/types/client';
 
 interface SocketState {
   status: ConnectionStatus;
+  connectionId: number;
   lastConnectedAt: string | null;
   reconnectAttempt: number;
   maxReconnectAttempts: number;
@@ -36,6 +37,7 @@ export type SocketStore = SocketState & SocketActions;
 
 const initialState: SocketState = {
   status: 'disconnected',
+  connectionId: 0,
   lastConnectedAt: null,
   reconnectAttempt: 0,
   maxReconnectAttempts: 10,
@@ -48,11 +50,12 @@ export const useSocketStore = create<SocketStore>()(
       ...initialState,
 
       setConnected(): void {
-        set({
-          status: 'connected',
+        set((state) => ({
+          status: 'connected' as const,
+          connectionId: state.connectionId + 1,
           lastConnectedAt: new Date().toISOString(),
           reconnectAttempt: 0,
-        });
+        }));
       },
 
       setDisconnected(): void {

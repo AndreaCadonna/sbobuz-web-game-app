@@ -3,7 +3,7 @@
  */
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 
 import { Button } from '@/components/ui/Button';
@@ -27,9 +27,11 @@ export function LoginForm(): React.JSX.Element {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Redirect if already authenticated
-  if (isAuthenticated) {
-    router.replace('/lobby');
-  }
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.replace('/lobby');
+    }
+  }, [isAuthenticated, router]);
 
   const handleChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {

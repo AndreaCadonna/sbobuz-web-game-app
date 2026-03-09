@@ -71,8 +71,12 @@ export interface RoomStateUpdatePayload {
   readonly players: ReadonlyArray<{
     userId: string;
     username: string;
+    displayName: string;
     isReady: boolean;
     isConnected: boolean;
+    isHost: boolean;
+    isAI: boolean;
+    aiDifficulty?: string;
   }>;
   readonly hostUserId: string;
   readonly status: string;

@@ -26,6 +26,8 @@ export interface AccessTokenPayload {
   readonly email: string;
   /** Username. */
   readonly username: string;
+  /** Display name (may differ from username). Present in tokens issued after this change. */
+  readonly displayName?: string;
   /** Session ID bound to this token. */
   readonly sessionId: string;
   /** Issued at (Unix seconds). */
@@ -49,6 +51,7 @@ declare global {
     interface Request {
       userId?: string | undefined;
       username?: string | undefined;
+      displayName?: string | undefined;
       userEmail?: string | undefined;
       sessionId?: string | undefined;
     }
@@ -137,6 +140,7 @@ export function createAuthMiddleware(
 
       req.userId = payload.sub;
       req.username = payload.username;
+      req.displayName = payload.displayName ?? payload.username;
       req.userEmail = payload.email;
       req.sessionId = payload.sessionId;
 
@@ -176,6 +180,7 @@ export function optionalAuth(
 
       req.userId = payload.sub;
       req.username = payload.username;
+      req.displayName = payload.displayName ?? payload.username;
       req.userEmail = payload.email;
       req.sessionId = payload.sessionId;
 

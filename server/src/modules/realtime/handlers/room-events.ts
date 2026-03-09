@@ -56,8 +56,12 @@ export function buildRoomStatePayload(
     players: room.players.map((p) => ({
       userId: p.userId,
       username: p.username,
+      displayName: p.displayName,
       isReady: p.isReady,
       isConnected: p.isAI ? true : (connectedUserIds?.has(p.userId) ?? p.connectionStatus === 'connected'),
+      isHost: p.userId === room.hostId,
+      isAI: p.isAI,
+      ...(p.aiDifficulty ? { aiDifficulty: p.aiDifficulty } : {}),
     })),
     hostUserId: room.hostId,
     status: room.status,

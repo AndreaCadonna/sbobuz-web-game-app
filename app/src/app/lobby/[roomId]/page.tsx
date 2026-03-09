@@ -1,10 +1,13 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useParams } from 'next/navigation';
 
 import { RoomView } from '@/components/lobby/RoomView';
 import { useRoomStore } from '@/stores/room-store';
+import { useSocketStore } from '@/stores/socket-store';
+import { getSocket } from '@/lib/socket';
+import { logger } from '@/lib/logger';
 
 export default function RoomDetailPage(): React.JSX.Element {
   const params = useParams();
@@ -13,12 +16,68 @@ export default function RoomDetailPage(): React.JSX.Element {
   const currentRoom = useRoomStore((s) => s.currentRoom);
   const fetchRoom = useRoomStore((s) => s.fetchRoom);
   const error = useRoomStore((s) => s.error);
+  const isConnected = useSocketStore((s) => s.status === 'connected');
+  const connectionId = useSocketStore((s) => s.connectionId);
+  // Stable boolean: true once the store has data for this roomId.
+  // Prevents the full currentRoom object from re-triggering the socket effect.
+  const hasRoomData = currentRoom?.roomId === roomId;
+  const socketRoomRef = useRef<{ roomId: string; connectionId: number } | null>(null);
+  const isMountedRef = useRef(true);
 
   useEffect(() => {
-    if (!currentRoom || currentRoom.roomId !== roomId) {
+    if (!hasRoomData) {
       void fetchRoom(roomId);
     }
-  }, [roomId, currentRoom, fetchRoom]);
+  }, [roomId, hasRoomData, fetchRoom]);
+
+  // Subscribe the socket to the Socket.IO room so the server
+  // tracks our roomId and allows game actions.
+  useEffect(() => {
+    isMountedRef.current = true;
+
+    if (!isConnected || !hasRoomData) return;
+    if (socketRoomRef.current?.roomId === roomId && socketRoomRef.current?.connectionId === connectionId) return; // already joined
+
+    const socket = getSocket();
+    if (!socket?.connected) return;
+
+    // Mark as joined immediately to prevent duplicate emits
+    socketRoomRef.current = { roomId, connectionId };
+
+    socket.emit('room:join', { roomId }, (response) => {
+      if (response.success) {
+        logger.info({ roomId }, 'Socket joined room');
+        if (response.roomState) {
+          useRoomStore.getState().handleRoomStateUpdate(response.roomState);
+        }
+      } else {
+        // Reset so a retry can happen on next effect run
+        if (socketRoomRef.current?.roomId === roomId) {
+          socketRoomRef.current = null;
+        }
+        logger.warn({ roomId, error: response.error }, 'Socket room:join failed');
+      }
+    });
+
+    return () => {
+      isMountedRef.current = false;
+      // Only leave if we're truly unmounting (not Strict Mode re-mount).
+      // Defer via microtask: if React re-mounts immediately, isMountedRef
+      // will be set back to true and we skip the leave.
+      const capturedRoomId = roomId;
+      queueMicrotask(() => {
+        if (!isMountedRef.current && socketRoomRef.current?.roomId === capturedRoomId) {
+          const s = getSocket();
+          if (s?.connected) {
+            s.emit('room:leave', { roomId: capturedRoomId }, () => {
+              logger.info({ roomId: capturedRoomId }, 'Socket left room');
+            });
+          }
+          socketRoomRef.current = null;
+        }
+      });
+    };
+  }, [isConnected, hasRoomData, roomId, connectionId]);
 
   if (error) {
     return (

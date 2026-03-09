@@ -156,7 +156,9 @@ export const useRoomStore = create<RoomStore>()(
 
       async toggleReady(roomId, isReady): Promise<void> {
         try {
-          await api.toggleReady(roomId, isReady);
+          const raw = await api.toggleReady(roomId, isReady);
+          const parsed = roomResponseSchema.parse(raw);
+          set({ currentRoom: parsed.data.room as unknown as RoomDetail });
         } catch (err) {
           const message =
             err instanceof ApiError ? err.message : 'Failed to toggle ready';
@@ -206,8 +208,9 @@ export const useRoomStore = create<RoomStore>()(
 
       async addAIPlayer(roomId, difficulty = 'easy'): Promise<void> {
         try {
-          await api.addAI(roomId, difficulty);
-          // Room state update will arrive via Socket.IO broadcast
+          const raw = await api.addAI(roomId, difficulty);
+          const parsed = roomResponseSchema.parse(raw);
+          set({ currentRoom: parsed.data.room as unknown as RoomDetail });
           logger.info({ roomId, difficulty }, 'AI player added');
         } catch (err) {
           const message =
@@ -242,26 +245,18 @@ export const useRoomStore = create<RoomStore>()(
         const { currentRoom } = get();
         if (!currentRoom || currentRoom.roomId !== payload.roomId) return;
 
-        // Rebuild players list from the authoritative server payload,
-        // merging with existing local data where available
+        // Rebuild players list from the authoritative server payload
         const updatedPlayers = payload.players.map((update) => {
           const existing = currentRoom.players.find((p) => p.userId === update.userId);
-          if (existing) {
-            return {
-              ...existing,
-              isReady: update.isReady,
-              connectionStatus: update.isConnected ? 'connected' as const : 'disconnected' as const,
-            };
-          }
-          // New player (e.g. AI player added) — create from payload
           return {
             userId: update.userId,
-            username: update.username ?? update.userId,
-            displayName: update.username ?? update.userId,
+            username: update.username,
+            displayName: update.displayName ?? update.username,
             isReady: update.isReady,
-            isHost: update.userId === payload.hostUserId,
-            isAI: update.userId.startsWith('ai_'),
-            joinedAt: new Date().toISOString(),
+            isHost: update.isHost ?? (update.userId === payload.hostUserId),
+            isAI: update.isAI ?? update.userId.startsWith('ai_'),
+            aiDifficulty: update.aiDifficulty,
+            joinedAt: existing?.joinedAt ?? new Date().toISOString(),
             connectionStatus: update.isConnected ? 'connected' as const : 'disconnected' as const,
           };
         });

@@ -94,7 +94,11 @@ export function useGame(gameId: string): UseGameReturn {
         if (!response.success) {
           const errorMsg = response.error?.message ?? 'Action failed';
           logger.warn({ gameId, error: errorMsg }, 'Game action failed');
-          // The action_rejected event will also fire, but we handle immediate feedback here
+          // Reset submitting state — for validation errors the server also
+          // emits game:action_rejected which calls handleActionRejected, but
+          // for non-validation failures (NOT_IN_ROOM, GAME_NOT_FOUND,
+          // INTERNAL_ERROR) that event is never emitted, so we must reset here.
+          setSubmitting(false);
         }
         // State update will come via game:state_update event
       });
