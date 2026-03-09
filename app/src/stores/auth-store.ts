@@ -73,18 +73,17 @@ export const useAuthStore = create<AuthStore>()(
           try {
             const raw = await api.login(email, password);
             const parsed = authResponseSchema.parse(raw);
-            const { user, accessToken, refreshToken } = parsed.data;
+            const { user, accessToken } = parsed.data;
             set({
               user: {
                 id: user.id,
                 email: user.email,
                 username: user.username,
                 displayName: user.displayName,
-                avatarUrl: user.avatarUrl,
-                createdAt: user.createdAt,
+                avatarUrl: user.avatarUrl ?? null,
+                createdAt: user.createdAt ?? null,
               },
               accessToken,
-              refreshToken,
               loginError: null,
             });
             logger.info({ userId: user.id }, 'Login successful');
@@ -101,18 +100,17 @@ export const useAuthStore = create<AuthStore>()(
           try {
             const raw = await api.register(email, username, password, displayName);
             const parsed = authResponseSchema.parse(raw);
-            const { user, accessToken, refreshToken } = parsed.data;
+            const { user, accessToken } = parsed.data;
             set({
               user: {
                 id: user.id,
                 email: user.email,
                 username: user.username,
                 displayName: user.displayName,
-                avatarUrl: user.avatarUrl,
-                createdAt: user.createdAt,
+                avatarUrl: user.avatarUrl ?? null,
+                createdAt: user.createdAt ?? null,
               },
               accessToken,
-              refreshToken,
               registerError: null,
             });
             logger.info({ userId: user.id }, 'Registration successful');
@@ -142,10 +140,9 @@ export const useAuthStore = create<AuthStore>()(
           try {
             const raw = await api.refreshToken(currentRefreshToken);
             const parsed = refreshResponseSchema.parse(raw);
-            const { accessToken, refreshToken: newRefreshToken } = parsed.data;
+            const { accessToken } = parsed.data;
             set({
               accessToken,
-              refreshToken: newRefreshToken,
               isRefreshing: false,
             });
             logger.debug('Token refreshed successfully');

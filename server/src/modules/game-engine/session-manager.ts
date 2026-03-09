@@ -123,13 +123,14 @@ export async function createGameSession(
   playerIds: ReadonlyArray<string>,
   config: GameConfig,
   seed?: number | undefined,
+  existingGameId?: string | undefined,
 ): Promise<{ gameId: string; state: GameState }> {
   // Check room doesn't already have an active game
   if (roomToGame.has(roomId)) {
     throw new Error(`Room ${roomId} already has an active game`);
   }
 
-  const gameId = randomUUID();
+  const gameId = existingGameId ?? randomUUID();
   const gameSeed = seed ?? Math.floor(Math.random() * 2_147_483_647);
   const now = new Date().toISOString();
 
@@ -221,12 +222,21 @@ export function applyAction(
     // Check if game is over
     if (result.newState.phase === 'finished' || result.newState.phase === 'cancelled') {
       void handleGameCompletion(session, result.newState);
+
+      // Notify AI controller that game ended
+      void notifyAIGameEnded(gameId);
     } else {
       // Restart turn timer for next player
       startTurnTimer(session);
 
       // Snapshot periodically
       void maybeSnapshot(session);
+
+      // Notify AI controller if it's now an AI player's turn
+      const nextPlayerId = result.newState.turnOrder[result.newState.currentPlayerIndex];
+      if (nextPlayerId) {
+        void notifyAITurnChange(gameId, nextPlayerId, result.newState);
+      }
     }
   }
 
@@ -316,6 +326,8 @@ export function createGameSessionProvider(): GameSessionProvider {
       return roomToGame.get(roomId);
     },
 
+    getSanitizedState: getSanitizedState,
+
     async processAction(
       gameId: string,
       action: Record<string, unknown>,
@@ -332,7 +344,7 @@ export function createGameSessionProvider(): GameSessionProvider {
         };
       }
 
-      const gameAction = action as GameAction;
+      const gameAction = action as unknown as GameAction;
       const result = applyAction(gameId, gameAction);
 
       if (!result.accepted) {
@@ -737,6 +749,32 @@ export async function recoverSession(roomId: string): Promise<GameSession | unde
   } catch (err) {
     logger.error({ err, roomId }, 'Failed to recover game session');
     return undefined;
+  }
+}
+
+// ---------------------------------------------------------------------------
+// AI Controller Integration
+// ---------------------------------------------------------------------------
+
+async function notifyAITurnChange(
+  gameId: string,
+  playerId: string,
+  gameState: GameState,
+): Promise<void> {
+  try {
+    const { onTurnChange } = await import('../ai/controller.js');
+    onTurnChange(gameId, playerId, gameState);
+  } catch {
+    // AI module not available or player is not AI — silently ignore
+  }
+}
+
+async function notifyAIGameEnded(gameId: string): Promise<void> {
+  try {
+    const { onGameEnded } = await import('../ai/controller.js');
+    onGameEnded(gameId);
+  } catch {
+    // AI module not available — silently ignore
   }
 }
 

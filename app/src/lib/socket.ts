@@ -13,7 +13,7 @@ import { logger } from './logger';
 export type TypedClientSocket = Socket<ServerToClientEvents, ClientToServerEvents>;
 
 const SOCKET_URL =
-  process.env.NEXT_PUBLIC_SOCKET_URL ?? 'http://localhost:3001';
+  process.env.NEXT_PUBLIC_SOCKET_URL ?? 'http://localhost:3000';
 
 const HEARTBEAT_INTERVAL_MS = 25_000;
 

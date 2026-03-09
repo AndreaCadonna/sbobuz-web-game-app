@@ -37,7 +37,7 @@ export function socketAuthMiddleware(
       'WebSocket connection rejected: no token provided',
     );
     const err = new Error('Authentication required');
-    (err as Record<string, unknown>)['data'] = { code: 'AUTH_FAILED', message: 'Authentication required' };
+    (err as unknown as Record<string, unknown>)['data'] = { code: 'AUTH_FAILED', message: 'Authentication required' };
     next(err);
     return;
   }
@@ -66,7 +66,7 @@ export function socketAuthMiddleware(
     );
 
     const socketErr = new Error(message);
-    (socketErr as Record<string, unknown>)['data'] = { code: 'AUTH_FAILED', message };
+    (socketErr as unknown as Record<string, unknown>)['data'] = { code: 'AUTH_FAILED', message };
     next(socketErr);
   }
 }

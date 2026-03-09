@@ -23,7 +23,6 @@ WORKDIR /app
 
 # Copy node_modules from deps stage
 COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/shared/node_modules ./shared/node_modules
 COPY --from=deps /app/server/node_modules ./server/node_modules
 
 # Copy source code
@@ -31,8 +30,9 @@ COPY package.json tsconfig.json ./
 COPY shared/ ./shared/
 COPY server/ ./server/
 
-# Compile TypeScript (builds shared first, then server via project references)
-RUN npx tsc --build server/tsconfig.json
+# Compile TypeScript — build shared first, then server
+RUN npx tsc --build --force shared/tsconfig.json && \
+    npx tsc --build --force server/tsconfig.json
 
 # ============================================================
 # Stage 3: production — Minimal runtime image

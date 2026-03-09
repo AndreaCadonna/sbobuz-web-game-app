@@ -14,6 +14,7 @@
 import { z } from 'zod/v4';
 
 import type { TypedSocketIOServer } from '../../../infra/websocket/setup.js';
+import type { SanitizedGameState } from '../../game-engine/index.js';
 import type {
   TypedSocket,
   GameActionPayload,
@@ -53,6 +54,11 @@ export interface GameSessionProvider {
   getGameIdForRoom(roomId: string): string | undefined;
 
   /**
+   * Get a sanitized game state for a specific player.
+   */
+  getSanitizedState(gameId: string, playerId: string): SanitizedGameState | undefined;
+
+  /**
    * Process a game action and return the result.
    */
   processAction(
@@ -69,6 +75,7 @@ export interface GameSessionProvider {
  */
 const defaultProvider: GameSessionProvider = {
   getGameIdForRoom: () => undefined,
+  getSanitizedState: () => undefined,
   processAction: async () => ({
     accepted: false,
     reason: 'Game session not available',
@@ -208,5 +215,37 @@ export function handleGameAction(
         error: { code: 'INTERNAL_ERROR', message: 'Failed to process game action' },
       });
     }
+  };
+}
+
+/**
+ * Handle game:request_state event.
+ *
+ * Returns the sanitized game state for the requesting player.
+ * Used when the client reconnects or navigates to the game page
+ * after missing the initial game:started broadcast.
+ */
+export function handleGameRequestState(
+  socket: TypedSocket,
+) {
+  return (
+    payload: { gameId: string },
+    callback: (response: { success: boolean; state?: SanitizedGameState; error?: string }) => void,
+  ): void => {
+    const userId = socket.data.userId;
+
+    if (!payload.gameId) {
+      callback({ success: false, error: 'Missing gameId' });
+      return;
+    }
+
+    const state = gameSessionProvider.getSanitizedState(payload.gameId, userId);
+    if (!state) {
+      callback({ success: false, error: 'Game not found or not a participant' });
+      return;
+    }
+
+    logger.debug({ gameId: payload.gameId, userId }, 'Game state requested');
+    callback({ success: true, state });
   };
 }

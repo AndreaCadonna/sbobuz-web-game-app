@@ -16,9 +16,6 @@ services:
     ports:
       - "3000:3000"
       - "9464:9464"
-    volumes:
-      - ./server:/app/server
-      - ./shared:/app/shared
     depends_on:
       postgres:
         condition: service_healthy

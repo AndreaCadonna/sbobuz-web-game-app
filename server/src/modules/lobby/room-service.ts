@@ -503,7 +503,7 @@ export async function addAIPlayer(
     userId: aiId,
     username: `AI (${capitalDifficulty})`,
     displayName: `AI (${capitalDifficulty})`,
-    isReady: false,
+    isReady: true,
     isHost: false,
     isAI: true,
     aiDifficulty: difficulty,

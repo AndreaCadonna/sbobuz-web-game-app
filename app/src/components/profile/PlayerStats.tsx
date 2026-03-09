@@ -24,7 +24,7 @@ export function PlayerStats(): React.JSX.Element {
     try {
       const raw = await api.getMyRating();
       const parsed = myRatingResponseSchema.parse(raw);
-      setStats(parsed.data);
+      setStats(parsed.data.entry);
     } catch (err) {
       const message =
         err instanceof ApiError ? err.message : 'Failed to load stats';
@@ -70,8 +70,8 @@ export function PlayerStats(): React.JSX.Element {
   const statItems = [
     { label: 'Rank', value: `#${String(stats.rank)}`, color: '' },
     { label: 'Rating', value: String(stats.rating), color: 'text-brand-600 dark:text-brand-400' },
-    { label: 'Wins', value: String(stats.wins), color: 'text-green-600 dark:text-green-400' },
-    { label: 'Losses', value: String(stats.losses), color: 'text-red-600 dark:text-red-400' },
+    { label: 'Wins', value: String(stats.gamesWon), color: 'text-green-600 dark:text-green-400' },
+    { label: 'Losses', value: String(stats.gamesPlayed - stats.gamesWon), color: 'text-red-600 dark:text-red-400' },
     { label: 'Games', value: String(stats.gamesPlayed), color: '' },
     { label: 'Win Rate', value: `${String(Math.round(stats.winRate * 100))}%`, color: '' },
   ];

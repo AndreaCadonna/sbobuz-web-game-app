@@ -99,11 +99,10 @@ export const authResponseSchema = z.object({
       email: z.string(),
       username: z.string(),
       displayName: z.string(),
-      avatarUrl: z.string().nullable(),
-      createdAt: z.string(),
+      avatarUrl: z.string().nullable().optional(),
+      createdAt: z.string().optional(),
     }),
     accessToken: z.string(),
-    refreshToken: z.string(),
   }),
 });
 
@@ -111,42 +110,45 @@ export const refreshResponseSchema = z.object({
   success: z.literal(true),
   data: z.object({
     accessToken: z.string(),
-    refreshToken: z.string(),
   }),
+});
+
+const roomStateSchema = z.object({
+  roomId: z.string(),
+  name: z.string(),
+  hostId: z.string(),
+  players: z.array(
+    z.object({
+      userId: z.string(),
+      username: z.string(),
+      displayName: z.string(),
+      isReady: z.boolean(),
+      isHost: z.boolean(),
+      isAI: z.boolean(),
+      aiDifficulty: z.enum(['easy', 'medium', 'hard']).optional(),
+      joinedAt: z.string(),
+      connectionStatus: z.enum(['connected', 'disconnected']),
+    }),
+  ),
+  maxPlayers: z.number(),
+  minPlayers: z.number(),
+  status: z.string(),
+  settings: z.object({
+    maxPlayers: z.number(),
+    turnTimerSeconds: z.number(),
+    allowAI: z.boolean(),
+    disconnectGraceSeconds: z.number(),
+  }),
+  inviteCode: z.string(),
+  isPrivate: z.boolean(),
+  createdAt: z.string(),
+  lastActivityAt: z.string(),
 });
 
 export const roomResponseSchema = z.object({
   success: z.literal(true),
   data: z.object({
-    roomId: z.string(),
-    name: z.string(),
-    hostId: z.string(),
-    players: z.array(
-      z.object({
-        userId: z.string(),
-        username: z.string(),
-        displayName: z.string(),
-        isReady: z.boolean(),
-        isHost: z.boolean(),
-        isAI: z.boolean(),
-        aiDifficulty: z.enum(['easy', 'medium', 'hard']).optional(),
-        joinedAt: z.string(),
-        connectionStatus: z.enum(['connected', 'disconnected']),
-      }),
-    ),
-    maxPlayers: z.number(),
-    minPlayers: z.number(),
-    status: z.string(),
-    settings: z.object({
-      maxPlayers: z.number(),
-      turnTimerSeconds: z.number(),
-      allowAI: z.boolean(),
-      disconnectGraceSeconds: z.number(),
-    }),
-    inviteCode: z.string(),
-    isPrivate: z.boolean(),
-    createdAt: z.string(),
-    lastActivityAt: z.string(),
+    room: roomStateSchema,
   }),
 });
 
@@ -156,11 +158,9 @@ export const leaderboardEntrySchema = z.object({
   rank: z.number(),
   userId: z.string(),
   username: z.string(),
-  displayName: z.string(),
   rating: z.number(),
-  wins: z.number(),
-  losses: z.number(),
   gamesPlayed: z.number(),
+  gamesWon: z.number(),
   winRate: z.number(),
 });
 
@@ -168,77 +168,61 @@ export type LeaderboardEntry = z.infer<typeof leaderboardEntrySchema>;
 
 export const leaderboardResponseSchema = z.object({
   success: z.literal(true),
-  data: z.array(leaderboardEntrySchema),
-  meta: z
-    .object({
-      requestId: z.string().optional(),
-      timestamp: z.string().optional(),
-      pagination: z
-        .object({
-          page: z.number(),
-          pageSize: z.number(),
-          totalItems: z.number(),
-          totalPages: z.number(),
-          hasNextPage: z.boolean(),
-          hasPreviousPage: z.boolean(),
-        })
-        .optional(),
-    })
-    .optional(),
+  data: z.object({
+    entries: z.array(leaderboardEntrySchema),
+    limit: z.number(),
+    offset: z.number(),
+  }),
 });
 
 export const myRatingResponseSchema = z.object({
   success: z.literal(true),
-  data: leaderboardEntrySchema,
+  data: z.object({
+    entry: leaderboardEntrySchema.nullable(),
+    message: z.string().optional(),
+  }),
 });
 
 export const matchHistoryEntrySchema = z.object({
   gameId: z.string(),
   playedAt: z.string(),
-  result: z.enum(['win', 'loss', 'draw', 'cancelled']),
+  result: z.enum(['win', 'loss']),
   ratingChange: z.number(),
-  opponentCount: z.number(),
-  duration: z.number().optional(),
+  ratingAfter: z.number(),
 });
 
 export type MatchHistoryEntry = z.infer<typeof matchHistoryEntrySchema>;
 
 export const matchHistoryResponseSchema = z.object({
   success: z.literal(true),
-  data: z.array(matchHistoryEntrySchema),
-  meta: z
-    .object({
-      requestId: z.string().optional(),
-      timestamp: z.string().optional(),
-      pagination: z
-        .object({
-          page: z.number(),
-          pageSize: z.number(),
-          totalItems: z.number(),
-          totalPages: z.number(),
-          hasNextPage: z.boolean(),
-          hasPreviousPage: z.boolean(),
-        })
-        .optional(),
-    })
-    .optional(),
+  data: z.object({
+    history: z.array(matchHistoryEntrySchema),
+  }),
 });
 
 export const roomListResponseSchema = z.object({
   success: z.literal(true),
-  data: z.array(
-    z.object({
-      roomId: z.string(),
-      name: z.string(),
-      hostDisplayName: z.string(),
-      playerCount: z.number(),
-      maxPlayers: z.number(),
-      status: z.string(),
-      turnTimerSeconds: z.number(),
-      isPrivate: z.boolean(),
-      createdAt: z.string(),
-    }),
-  ),
+  data: z.object({
+    rooms: z.array(
+      z.object({
+        roomId: z.string(),
+        name: z.string(),
+        hostDisplayName: z.string(),
+        playerCount: z.number(),
+        maxPlayers: z.number(),
+        status: z.string(),
+        settings: z.object({
+          maxPlayers: z.number(),
+          turnTimerSeconds: z.number(),
+          allowAI: z.boolean(),
+          disconnectGraceSeconds: z.number(),
+        }).optional(),
+        turnTimerSeconds: z.number().optional(),
+        isPrivate: z.boolean().optional(),
+        createdAt: z.string(),
+      }),
+    ),
+  }),
   meta: z
     .object({
       requestId: z.string(),

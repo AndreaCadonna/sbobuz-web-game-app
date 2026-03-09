@@ -11,6 +11,7 @@ import { devtools } from 'zustand/middleware';
 
 import { api, ApiError } from '@/lib/api-client';
 import { logger } from '@/lib/logger';
+import { useGameStore } from '@/stores/game-store';
 import { roomListResponseSchema, roomResponseSchema } from '@/lib/validators';
 import type {
   RoomDetail,
@@ -28,6 +29,7 @@ interface RoomState {
   isLoadingRooms: boolean;
   isCreatingRoom: boolean;
   isJoiningRoom: boolean;
+  isStartingGame: boolean;
   error: string | null;
 }
 
@@ -42,8 +44,9 @@ interface RoomActions {
   }) => Promise<string | null>;
   joinRoom: (roomId: string, inviteCode?: string) => Promise<boolean>;
   leaveRoom: (roomId: string) => Promise<void>;
-  toggleReady: (roomId: string) => Promise<void>;
+  toggleReady: (roomId: string, isReady: boolean) => Promise<void>;
   startGame: (roomId: string) => Promise<void>;
+  addAIPlayer: (roomId: string, difficulty?: 'easy' | 'medium' | 'hard') => Promise<void>;
   fetchRoom: (roomId: string) => Promise<void>;
   clearError: () => void;
   clearCurrentRoom: () => void;
@@ -66,6 +69,7 @@ const initialState: RoomState = {
   isLoadingRooms: false,
   isCreatingRoom: false,
   isJoiningRoom: false,
+  isStartingGame: false,
   error: null,
 };
 
@@ -79,8 +83,19 @@ export const useRoomStore = create<RoomStore>()(
         try {
           const raw = await api.listRooms();
           const parsed = roomListResponseSchema.parse(raw);
+          const rooms = parsed.data.rooms.map((r) => ({
+            roomId: r.roomId,
+            name: r.name,
+            hostDisplayName: r.hostDisplayName,
+            playerCount: r.playerCount,
+            maxPlayers: r.maxPlayers,
+            status: r.status as RoomSummary['status'],
+            turnTimerSeconds: r.turnTimerSeconds ?? r.settings?.turnTimerSeconds ?? 60,
+            isPrivate: r.isPrivate ?? false,
+            createdAt: r.createdAt,
+          }));
           set({
-            rooms: parsed.data as RoomSummary[],
+            rooms,
             isLoadingRooms: false,
           });
         } catch (err) {
@@ -97,11 +112,11 @@ export const useRoomStore = create<RoomStore>()(
           const raw = await api.createRoom(data);
           const parsed = roomResponseSchema.parse(raw);
           set({
-            currentRoom: parsed.data as unknown as RoomDetail,
+            currentRoom: parsed.data.room as unknown as RoomDetail,
             isCreatingRoom: false,
           });
-          logger.info({ roomId: parsed.data.roomId }, 'Room created');
-          return parsed.data.roomId;
+          logger.info({ roomId: parsed.data.room.roomId }, 'Room created');
+          return parsed.data.room.roomId;
         } catch (err) {
           const message =
             err instanceof ApiError ? err.message : 'Failed to create room';
@@ -139,9 +154,9 @@ export const useRoomStore = create<RoomStore>()(
         }
       },
 
-      async toggleReady(roomId): Promise<void> {
+      async toggleReady(roomId, isReady): Promise<void> {
         try {
-          await api.toggleReady(roomId);
+          await api.toggleReady(roomId, isReady);
         } catch (err) {
           const message =
             err instanceof ApiError ? err.message : 'Failed to toggle ready';
@@ -151,14 +166,54 @@ export const useRoomStore = create<RoomStore>()(
       },
 
       async startGame(roomId): Promise<void> {
+        if (get().isStartingGame) return;
+        set({ isStartingGame: true, error: null });
         try {
-          await api.startGame(roomId);
+          const response = await api.startGame(roomId) as {
+            data?: { gameId?: string; room?: Record<string, unknown> };
+          };
           logger.info({ roomId }, 'Game start requested');
+
+          // Update room status from REST response so navigation can trigger
+          // even if socket events are delayed
+          const gameId = response?.data?.gameId;
+          const roomData = response?.data?.room;
+          if (roomData && typeof roomData.status === 'string') {
+            const currentRoom = get().currentRoom;
+            if (currentRoom && currentRoom.roomId === roomId) {
+              set({
+                currentRoom: {
+                  ...currentRoom,
+                  status: roomData.status as RoomDetail['status'],
+                },
+              });
+            }
+          }
+          if (gameId) {
+            // Set gameId directly so navigation triggers immediately;
+            // full game state will arrive via the game:started socket event
+            useGameStore.setState({ gameId });
+          }
         } catch (err) {
           const message =
             err instanceof ApiError ? err.message : 'Failed to start game';
           set({ error: message });
           logger.warn({ err, roomId }, 'Failed to start game');
+        } finally {
+          set({ isStartingGame: false });
+        }
+      },
+
+      async addAIPlayer(roomId, difficulty = 'easy'): Promise<void> {
+        try {
+          await api.addAI(roomId, difficulty);
+          // Room state update will arrive via Socket.IO broadcast
+          logger.info({ roomId, difficulty }, 'AI player added');
+        } catch (err) {
+          const message =
+            err instanceof ApiError ? err.message : 'Failed to add AI player';
+          set({ error: message });
+          logger.warn({ err, roomId }, 'Failed to add AI player');
         }
       },
 
@@ -166,7 +221,7 @@ export const useRoomStore = create<RoomStore>()(
         try {
           const raw = await api.getRoom(roomId);
           const parsed = roomResponseSchema.parse(raw);
-          set({ currentRoom: parsed.data as unknown as RoomDetail });
+          set({ currentRoom: parsed.data.room as unknown as RoomDetail });
         } catch (err) {
           const message =
             err instanceof ApiError ? err.message : 'Failed to load room';
@@ -187,21 +242,36 @@ export const useRoomStore = create<RoomStore>()(
         const { currentRoom } = get();
         if (!currentRoom || currentRoom.roomId !== payload.roomId) return;
 
-        // Update players from the socket payload
+        // Rebuild players list from the authoritative server payload,
+        // merging with existing local data where available
+        const updatedPlayers = payload.players.map((update) => {
+          const existing = currentRoom.players.find((p) => p.userId === update.userId);
+          if (existing) {
+            return {
+              ...existing,
+              isReady: update.isReady,
+              connectionStatus: update.isConnected ? 'connected' as const : 'disconnected' as const,
+            };
+          }
+          // New player (e.g. AI player added) — create from payload
+          return {
+            userId: update.userId,
+            username: update.username ?? update.userId,
+            displayName: update.username ?? update.userId,
+            isReady: update.isReady,
+            isHost: update.userId === payload.hostUserId,
+            isAI: update.userId.startsWith('ai_'),
+            joinedAt: new Date().toISOString(),
+            connectionStatus: update.isConnected ? 'connected' as const : 'disconnected' as const,
+          };
+        });
+
         set({
           currentRoom: {
             ...currentRoom,
             hostId: payload.hostUserId,
             status: payload.status as RoomDetail['status'],
-            players: currentRoom.players.map((p) => {
-              const update = payload.players.find((u) => u.userId === p.userId);
-              if (!update) return p;
-              return {
-                ...p,
-                isReady: update.isReady,
-                connectionStatus: update.isConnected ? 'connected' as const : 'disconnected' as const,
-              };
-            }),
+            players: updatedPlayers,
           },
         });
       },

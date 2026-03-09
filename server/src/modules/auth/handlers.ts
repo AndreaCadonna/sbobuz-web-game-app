@@ -434,6 +434,15 @@ export async function logout(req: Request, res: Response): Promise<void> {
   // Clear refresh cookie
   clearRefreshCookie(res);
 
+  // Clear room membership so the user isn't blocked from joining/creating rooms
+  try {
+    const { clearUserCurrentRoom } = await import('../lobby/room-repository.js');
+    await clearUserCurrentRoom(userId);
+  } catch {
+    // Non-fatal: lobby module may not be initialized
+    logger.warn({ userId }, 'Failed to clear room membership on logout');
+  }
+
   logger.info({ userId, sessionId }, 'User logged out');
 
   res.status(204).end();
