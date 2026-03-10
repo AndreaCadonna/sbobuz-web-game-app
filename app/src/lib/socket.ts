@@ -32,7 +32,7 @@ export function connectSocket(accessToken: string): TypedClientSocket {
 
   socket = io(SOCKET_URL, {
     auth: { token: accessToken },
-    transports: ['websocket', 'polling'],
+    transports: ['websocket'],
     reconnection: true,
     reconnectionAttempts: 10,
     reconnectionDelay: 1000,

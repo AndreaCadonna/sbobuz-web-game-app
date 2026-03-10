@@ -1,0 +1,116 @@
+# Fly.io Deploy Pipeline for Sbobuz
+#
+# Deploys the API backend and/or Next.js frontend to Fly.io.
+# Triggered on push to main (after CI) or manual dispatch.
+#
+# Required GitHub Secrets:
+#   FLY_API_TOKEN -- Fly.io API token with deploy access
+
+name: Fly Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "What to deploy"
+        required: true
+        default: "both"
+        type: choice
+        options:
+          - api
+          - web
+          - both
+
+concurrency:
+  group: fly-deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+
+jobs:
+  # ------------------------------------------------------------------
+  # Deploy API (Express + Socket.IO backend)
+  # ------------------------------------------------------------------
+  deploy-api:
+    name: Deploy API
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    if: >-
+      github.event_name == 'push' ||
+      github.event.inputs.target == 'api' ||
+      github.event.inputs.target == 'both'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup flyctl
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Deploy API to Fly.io
+        run: flyctl deploy --config fly.toml --remote-only --app sbobuz-api
+
+      - name: Verify API health
+        run: |
+          MAX_ATTEMPTS=12
+          INTERVAL=10
+
+          for i in $(seq 1 $MAX_ATTEMPTS); do
+            echo "Attempt $i/$MAX_ATTEMPTS: checking health..."
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://sbobuz-api.fly.dev/health/ready" || true)
+            if [ "$STATUS" = "200" ]; then
+              echo "API is healthy."
+              curl -s "https://sbobuz-api.fly.dev/health/ready" | head -c 500
+              exit 0
+            fi
+            echo "Status: $STATUS — retrying in ${INTERVAL}s..."
+            sleep $INTERVAL
+          done
+
+          echo "::error::API did not become healthy within 120 seconds."
+          exit 1
+
+  # ------------------------------------------------------------------
+  # Deploy Web (Next.js frontend)
+  # ------------------------------------------------------------------
+  deploy-web:
+    name: Deploy Web
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    if: >-
+      github.event_name == 'push' ||
+      github.event.inputs.target == 'web' ||
+      github.event.inputs.target == 'both'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup flyctl
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Deploy Web to Fly.io
+        run: flyctl deploy --config fly.frontend.toml --remote-only --app sbobuz-web
+
+      - name: Verify Web health
+        run: |
+          MAX_ATTEMPTS=12
+          INTERVAL=10
+
+          for i in $(seq 1 $MAX_ATTEMPTS); do
+            echo "Attempt $i/$MAX_ATTEMPTS: checking health..."
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" "https://sbobuz-web.fly.dev/" || true)
+            if [ "$STATUS" = "200" ]; then
+              echo "Web app is healthy."
+              exit 0
+            fi
+            echo "Status: $STATUS — retrying in ${INTERVAL}s..."
+            sleep $INTERVAL
+          done
+
+          echo "::error::Web app did not become healthy within 120 seconds."
+          exit 1
