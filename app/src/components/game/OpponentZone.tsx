@@ -47,15 +47,29 @@ export function OpponentZone({
         </div>
       </div>
 
-      {/* Hand cards (face down) */}
-      {player.handCount > 0 && (
-        <div className="flex items-center gap-0.5 mb-2" aria-label="Hand cards (hidden)">
-          {Array.from({ length: Math.min(player.handCount, 5) }, (_, i) => (
-            <CardBack key={`hand-${String(i)}`} size="sm" />
+      {/* Hand cards (face down) — fanned for 1-5, badge for >5 */}
+      {player.handCount > 0 && player.handCount <= 5 && (
+        <div className="flex items-center mb-2" aria-label={`${String(player.handCount)} cards in hand`}>
+          {Array.from({ length: player.handCount }, (_, i) => (
+            <div
+              key={`hand-${String(i)}`}
+              className="first:ml-0 -ml-3 transition-transform motion-reduce:transition-none"
+              style={{
+                transform: `rotate(${String((i - (player.handCount - 1) / 2) * 5)}deg)`,
+                zIndex: i,
+              }}
+            >
+              <CardBack size="sm" />
+            </div>
           ))}
-          {player.handCount > 5 && (
-            <span className="ml-1 text-xs font-bold text-[var(--color-muted)]">+{String(player.handCount - 5)}</span>
-          )}
+        </div>
+      )}
+      {player.handCount > 5 && (
+        <div className="relative inline-block mb-2" aria-label={`${String(player.handCount)} cards in hand`}>
+          <CardBack size="sm" />
+          <div className="absolute -top-1.5 -right-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-gold-600 text-[9px] font-bold text-white ring-2 ring-[var(--color-background)] z-10">
+            {String(player.handCount)}
+          </div>
         </div>
       )}
 

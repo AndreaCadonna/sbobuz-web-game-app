@@ -6,9 +6,10 @@
  */
 'use client';
 
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 
 import { Card } from '@/components/game/Card';
+import { sortCardsByRank } from '@/lib/card-utils';
 import { useUIStore } from '@/stores/ui-store';
 import type { Card as CardType } from '@/types/client';
 
@@ -21,6 +22,7 @@ export function PlayerHand({ cards, isMyTurn }: PlayerHandProps): React.JSX.Elem
   const selectedCardIds = useUIStore((s) => s.selectedCardIds);
   const selectCard = useUIStore((s) => s.selectCard);
   const deselectCard = useUIStore((s) => s.deselectCard);
+  const setSelectedCards = useUIStore((s) => s.setSelectedCards);
 
   const handleCardClick = useCallback(
     (cardId: string) => {
@@ -33,6 +35,25 @@ export function PlayerHand({ cards, isMyTurn }: PlayerHandProps): React.JSX.Elem
     },
     [isMyTurn, selectedCardIds, selectCard, deselectCard],
   );
+
+  const handleDragStart = useCallback(
+    (e: React.DragEvent, cardId: string) => {
+      // If the dragged card isn't selected, select only it
+      const dragIds = selectedCardIds.includes(cardId)
+        ? selectedCardIds
+        : [cardId];
+
+      if (!selectedCardIds.includes(cardId)) {
+        setSelectedCards([cardId]);
+      }
+
+      e.dataTransfer.setData('application/json', JSON.stringify(dragIds));
+      e.dataTransfer.effectAllowed = 'move';
+    },
+    [selectedCardIds, setSelectedCards],
+  );
+
+  const sortedCards = useMemo(() => sortCardsByRank(cards), [cards]);
 
   if (cards.length === 0) {
     return (
@@ -48,7 +69,7 @@ export function PlayerHand({ cards, isMyTurn }: PlayerHandProps): React.JSX.Elem
       role="group"
       aria-label="Your hand"
     >
-      {cards.map((card) => {
+      {sortedCards.map((card) => {
         const cardId = card.type === 'joker' ? card.id : card.id;
         return (
           <Card
@@ -57,8 +78,10 @@ export function PlayerHand({ cards, isMyTurn }: PlayerHandProps): React.JSX.Elem
             isSelected={selectedCardIds.includes(cardId)}
             isPlayable={isMyTurn}
             isDisabled={!isMyTurn}
+            isDraggable={isMyTurn}
             size="md"
             onClick={handleCardClick}
+            onDragStart={handleDragStart}
           />
         );
       })}
