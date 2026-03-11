@@ -34,6 +34,12 @@ export interface RateLimiterOptions {
   readonly defaultLimit: RateLimitConfig;
   /** Endpoint-specific overrides keyed by "METHOD /path". */
   readonly endpoints?: Readonly<Record<string, RateLimitConfig>> | undefined;
+  /**
+   * When true, return 503 Service Unavailable if Redis is unreachable.
+   * When false (default), fail open and allow requests through.
+   * Recommended: true in production to prevent abuse during Redis outages.
+   */
+  readonly failClosed?: boolean;
 }
 
 /**
@@ -101,9 +107,21 @@ export function createRateLimiter(
         // If not allowed, response already sent
       })
       .catch((err: unknown) => {
-        // Fail open: Redis errors should not block requests
-        logger.warn({ err, key, endpoint }, 'Rate limiter Redis error — failing open');
-        next();
+        if (options.failClosed) {
+          logger.error({ err, key, endpoint }, 'Rate limiter Redis error — failing closed (503)');
+          res.status(503).json({
+            success: false,
+            error: {
+              code: 'SERVICE_UNAVAILABLE',
+              message: 'Service temporarily unavailable. Please try again later.',
+              requestId: (res.getHeader('X-Request-Id') as string | undefined) ?? '',
+              timestamp: new Date().toISOString(),
+            },
+          });
+        } else {
+          logger.warn({ err, key, endpoint }, 'Rate limiter Redis error — failing open');
+          next();
+        }
       });
   };
 }

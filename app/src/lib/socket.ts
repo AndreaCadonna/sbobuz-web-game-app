@@ -15,6 +15,17 @@ export type TypedClientSocket = Socket<ServerToClientEvents, ClientToServerEvent
 const SOCKET_URL =
   process.env.NEXT_PUBLIC_SOCKET_URL ?? 'http://localhost:3000';
 
+// Prevent accidental use of unencrypted WebSocket in production
+if (
+  process.env.NODE_ENV === 'production' &&
+  SOCKET_URL.startsWith('http://')
+) {
+  throw new Error(
+    'NEXT_PUBLIC_SOCKET_URL must use https:// (or wss://) in production. ' +
+    'Sending authentication tokens over unencrypted connections is not allowed.',
+  );
+}
+
 const HEARTBEAT_INTERVAL_MS = 25_000;
 
 let socket: TypedClientSocket | null = null;

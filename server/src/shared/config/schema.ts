@@ -83,6 +83,10 @@ export const serverConfigSchema = z
     // --- Rate Limiting ---
     RATE_LIMIT_WINDOW_MS: positiveInt.default(60000),
     RATE_LIMIT_MAX_REQUESTS: positiveInt.default(100),
+    RATE_LIMIT_FAIL_CLOSED: z
+      .enum(['true', 'false'])
+      .default('false')
+      .transform((val) => val === 'true'),
 
     // --- Game ---
     DEFAULT_TURN_TIMER_SECONDS: positiveInt.default(60),
