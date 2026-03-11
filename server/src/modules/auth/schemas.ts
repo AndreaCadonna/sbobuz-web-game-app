@@ -70,7 +70,19 @@ export const loginSchema = z.object({
 });
 
 /**
+ * Guest login request body schema.
+ */
+export const guestLoginSchema = z.object({
+  displayName: z
+    .string()
+    .min(2, 'Display name must be at least 2 characters')
+    .max(30, 'Display name must not exceed 30 characters')
+    .trim(),
+});
+
+/**
  * Inferred types from schemas.
  */
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type LoginInput = z.infer<typeof loginSchema>;
+export type GuestLoginInput = z.infer<typeof guestLoginSchema>;

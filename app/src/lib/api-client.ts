@@ -176,6 +176,15 @@ export const api = {
     });
   },
 
+  guestLogin(displayName: string): Promise<unknown> {
+    return makeRequest({
+      method: 'POST',
+      path: '/auth/guest',
+      body: { displayName },
+      requiresAuth: false,
+    });
+  },
+
   // Rooms
   listRooms(params?: {
     page?: number;

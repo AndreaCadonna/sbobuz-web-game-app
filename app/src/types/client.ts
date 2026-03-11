@@ -241,6 +241,7 @@ export interface AuthenticatedUser {
   readonly displayName: string;
   readonly avatarUrl: string | null;
   readonly createdAt: string | null;
+  readonly isGuest?: boolean;
 }
 
 export interface AuthTokens {

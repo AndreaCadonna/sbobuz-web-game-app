@@ -271,6 +271,7 @@ export interface SocketData {
   email: string;
   sessionId: string;
   connectedAt: string;
+  isGuest?: boolean;
 }
 
 /**

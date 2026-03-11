@@ -30,6 +30,8 @@ export interface AccessTokenPayload {
   readonly displayName?: string;
   /** Session ID bound to this token. */
   readonly sessionId: string;
+  /** Whether this token belongs to a guest user. */
+  readonly isGuest?: boolean;
   /** Issued at (Unix seconds). */
   readonly iat: number;
   /** Expiration (Unix seconds). */
@@ -54,6 +56,7 @@ declare global {
       displayName?: string | undefined;
       userEmail?: string | undefined;
       sessionId?: string | undefined;
+      isGuest?: boolean | undefined;
     }
   }
 }
@@ -143,6 +146,7 @@ export function createAuthMiddleware(
       req.displayName = payload.displayName ?? payload.username;
       req.userEmail = payload.email;
       req.sessionId = payload.sessionId;
+      req.isGuest = payload.isGuest ?? false;
 
       // Enrich the AsyncLocalStorage context with userId
       const currentCtx = getContext();
@@ -183,6 +187,7 @@ export function optionalAuth(
       req.displayName = payload.displayName ?? payload.username;
       req.userEmail = payload.email;
       req.sessionId = payload.sessionId;
+      req.isGuest = payload.isGuest ?? false;
 
       const currentCtx = getContext();
       runWithContext({ ...currentCtx, userId: payload.sub }, () => {

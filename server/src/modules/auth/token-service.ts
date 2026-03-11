@@ -31,6 +31,7 @@ export interface GenerateAccessTokenPayload {
   readonly username: string;
   readonly displayName: string;
   readonly sessionId: string;
+  readonly isGuest?: boolean;
 }
 
 /**
@@ -42,6 +43,7 @@ export interface DecodedAccessToken {
   readonly username: string;
   readonly displayName?: string;
   readonly sessionId: string;
+  readonly isGuest?: boolean;
   readonly iat: number;
   readonly exp: number;
   readonly jti: string;
@@ -64,6 +66,7 @@ export function generateAccessToken(payload: GenerateAccessTokenPayload): string
     username: payload.username,
     displayName: payload.displayName,
     sessionId: payload.sessionId,
+    ...(payload.isGuest ? { isGuest: true as const } : {}),
     type: 'access' as const,
     jti: randomUUID(),
   };

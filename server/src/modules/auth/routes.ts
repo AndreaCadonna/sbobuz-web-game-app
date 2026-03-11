@@ -15,8 +15,8 @@ import { createAuthMiddleware } from '../../shared/middleware/auth-middleware.js
 import { createRateLimiter } from '../../shared/middleware/rate-limiter.js';
 import { validateBody } from '../../shared/middleware/validation.js';
 
-import { register, login, refresh, logout, me } from './handlers.js';
-import { registerSchema, loginSchema } from './schemas.js';
+import { register, login, guestLogin, refresh, logout, me } from './handlers.js';
+import { registerSchema, loginSchema, guestLoginSchema } from './schemas.js';
 
 /**
  * Async handler wrapper that catches promise rejections and forwards
@@ -79,6 +79,23 @@ export function createAuthRouter(): Router {
     loginLimiter,
     validateBody(loginSchema),
     asyncHandler(login),
+  );
+
+  // Guest login rate limiter (more permissive than register, but still bounded)
+  const guestLimiter = createRateLimiter({
+    defaultLimit: {
+      windowMs: 60 * 60 * 1000, // 1 hour
+      maxRequests: 100,
+      keyBy: 'ip',
+    },
+  });
+
+  // POST /api/v1/auth/guest
+  router.post(
+    '/guest',
+    guestLimiter,
+    validateBody(guestLoginSchema),
+    asyncHandler(guestLogin),
   );
 
   // POST /api/v1/auth/refresh

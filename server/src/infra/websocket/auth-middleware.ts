@@ -50,6 +50,7 @@ export function socketAuthMiddleware(
     socket.data.email = decoded.email;
     socket.data.sessionId = decoded.sessionId;
     socket.data.connectedAt = new Date().toISOString();
+    socket.data.isGuest = decoded.isGuest ?? false;
 
     logger.debug(
       { socketId: socket.id, userId: decoded.sub },

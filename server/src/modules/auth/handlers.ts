@@ -8,6 +8,8 @@
  * @see docs/specs/auth-module.md Section 3 (API Endpoints)
  */
 
+import { randomUUID } from 'node:crypto';
+
 import bcrypt from 'bcryptjs';
 import type { Request, Response } from 'express';
 
@@ -31,7 +33,7 @@ import {
   userExistsByEmail,
   userExistsByUsername,
 } from './repository.js';
-import type { RegisterInput, LoginInput } from './schemas.js';
+import type { RegisterInput, LoginInput, GuestLoginInput } from './schemas.js';
 import {
   createSession,
   getSession,
@@ -323,6 +325,44 @@ export async function login(req: Request, res: Response): Promise<void> {
 }
 
 /**
+ * POST /api/v1/auth/guest
+ *
+ * Create a guest session without any database write.
+ * Issues a JWT access token with isGuest: true. No refresh token is created.
+ */
+// eslint-disable-next-line @typescript-eslint/require-await
+export async function guestLogin(req: Request, res: Response): Promise<void> {
+  const { displayName } = req.body as GuestLoginInput;
+
+  const userId = `guest:${randomUUID()}`;
+  const username = `guest_${randomUUID().slice(0, 8)}`;
+
+  const accessToken = generateAccessToken({
+    userId,
+    email: '',
+    username,
+    displayName,
+    sessionId: `guest-session:${randomUUID()}`,
+    isGuest: true,
+  });
+
+  logger.info({ userId, displayName }, 'Guest user created');
+
+  const body: ApiSuccessResponse<{
+    accessToken: string;
+    user: { id: string; username: string; displayName: string; isGuest: boolean };
+  }> = {
+    success: true,
+    data: {
+      accessToken,
+      user: { id: userId, username, displayName, isGuest: true },
+    },
+  };
+
+  res.status(200).json(body);
+}
+
+/**
  * POST /api/v1/auth/refresh
  *
  * Rotate the refresh token and issue a new access token.
@@ -422,6 +462,14 @@ export async function logout(req: Request, res: Response): Promise<void> {
     throw new AuthenticationError('Authentication required', {
       errorCode: 'AUTH_REQUIRED',
     });
+  }
+
+  // Guest users have no server-side sessions or refresh tokens to revoke
+  if (req.isGuest) {
+    clearRefreshCookie(res);
+    logger.info({ userId, sessionId }, 'Guest user logged out');
+    res.status(204).end();
+    return;
   }
 
   // Revoke session
