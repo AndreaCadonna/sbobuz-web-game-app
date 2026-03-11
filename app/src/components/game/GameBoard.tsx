@@ -4,6 +4,11 @@
  * Arranges all game zones: opponents at top in a semi-circle arc,
  * play/draw piles in center on a felt-green table,
  * player's cards at bottom, controls below. Responsive layout.
+ *
+ * Mobile (<sm): Compact vertical stack — opponent strip, inline center piles,
+ * smaller cards, and pinned player area at bottom.
+ * Desktop (sm+): Full table layout with absolute opponent positioning.
+ *
  * All game state comes from the server via the game store.
  */
 'use client';
@@ -19,6 +24,7 @@ import { PlayerHand } from '@/components/game/PlayerHand';
 import { PlayPile } from '@/components/game/PlayPile';
 import { TableLayout } from '@/components/game/TableLayout';
 import { TurnIndicator } from '@/components/game/TurnIndicator';
+import { useIsMobile } from '@/hooks/use-is-mobile';
 import { useUIStore } from '@/stores/ui-store';
 import type { SanitizedGameState, SanitizedPlayerState } from '@/types/client';
 
@@ -74,6 +80,8 @@ export function GameBoard({
   onDeclareDirection,
   onGameOverClose,
 }: GameBoardProps): React.JSX.Element {
+  const isMobile = useIsMobile();
+
   // Derive current player info
   const currentPlayerId = useMemo(() => {
     return gameState.turnOrder[gameState.currentPlayerIndex] ?? null;
@@ -104,7 +112,8 @@ export function GameBoard({
   const winnerName = winnerId ? (playerNames[winnerId] ?? 'Unknown') : '';
   const isCurrentUserWinner = winnerId === myPlayerId;
 
-  const selectedCardCount = useUIStore((s) => s.selectedCardIds.length);
+  const selectedCardIds = useUIStore((s) => s.selectedCardIds);
+  const selectedCardCount = selectedCardIds.length;
   const clearCardSelection = useUIStore((s) => s.clearCardSelection);
 
   const handleDropCards = useCallback(
@@ -115,8 +124,41 @@ export function GameBoard({
     [onPlayCards, clearCardSelection],
   );
 
+  const pileSize = isMobile ? 'sm' as const : 'md' as const;
+
+  // Center content for the table (used in desktop TableLayout and mobile inline)
+  const centerPiles = (
+    <div className={`flex items-center justify-center ${isMobile ? 'gap-3 py-2 px-3' : 'gap-6 sm:gap-10 py-3 sm:py-4 px-6'} rounded-2xl bg-felt-table shadow-felt w-max`}>
+      <div className="text-center">
+        <DrawPile count={gameState.drawPileCount} size={pileSize} />
+        <span className="block mt-1 text-[10px] font-bold uppercase tracking-wider text-cream-300/70">Draw</span>
+      </div>
+      <div className="text-center">
+        <PlayPile
+          pile={gameState.playPile}
+          isDropTarget={isMyTurn}
+          onDropCards={handleDropCards}
+          size={pileSize}
+          selectedCardIds={selectedCardIds}
+        />
+        <span className="block mt-1 text-[10px] font-bold uppercase tracking-wider text-cream-300/70">Pile</span>
+      </div>
+      {gameState.burnPileCount > 0 && (
+        <div className="text-center">
+          <div
+            className={`flex ${isMobile ? 'h-[4.5rem] w-12' : 'h-24 w-16'} items-center justify-center rounded-xl border-2 border-brand-600/40 bg-brand-900/40`}
+            aria-label={`Burn pile, ${String(gameState.burnPileCount)} cards`}
+          >
+            <span className={`${isMobile ? 'text-xs' : 'text-sm'} font-bold text-cream-300/50`}>{String(gameState.burnPileCount)}</span>
+          </div>
+          <span className="block mt-1 text-[10px] font-bold uppercase tracking-wider text-cream-300/70">Burned</span>
+        </div>
+      )}
+    </div>
+  );
+
   return (
-    <div className="flex flex-col h-full min-h-0 gap-1.5 p-2 sm:p-3 overflow-y-auto scrollbar-thin">
+    <div className="flex flex-col h-full min-h-0 gap-1 sm:gap-1.5 p-1.5 sm:p-2 md:p-3 overflow-y-auto scrollbar-thin">
       {/* Turn indicator */}
       <div className="shrink-0">
         <TurnIndicator
@@ -129,41 +171,29 @@ export function GameBoard({
         />
       </div>
 
-      {/* Table: opponents positioned geometrically + center play area */}
+      {/* Table: opponents positioned geometrically + center play area (desktop only in TableLayout) */}
       <div className="shrink-0">
         <TableLayout
           opponents={opponents}
           currentPlayerId={currentPlayerId}
           playerNames={playerNames}
-          centerContent={
-            <div className="flex items-center justify-center gap-6 sm:gap-10 py-3 sm:py-4 rounded-2xl bg-felt-table shadow-felt w-max px-6">
-              <div className="text-center">
-                <DrawPile count={gameState.drawPileCount} />
-                <span className="block mt-1 text-[10px] font-bold uppercase tracking-wider text-cream-300/70">Draw</span>
-              </div>
-              <div className="text-center">
-                <PlayPile pile={gameState.playPile} isDropTarget={isMyTurn} onDropCards={handleDropCards} />
-                <span className="block mt-1 text-[10px] font-bold uppercase tracking-wider text-cream-300/70">Pile</span>
-              </div>
-              {gameState.burnPileCount > 0 && (
-                <div className="text-center">
-                  <div
-                    className="flex h-24 w-16 items-center justify-center rounded-xl border-2 border-brand-600/40 bg-brand-900/40"
-                    aria-label={`Burn pile, ${String(gameState.burnPileCount)} cards`}
-                  >
-                    <span className="text-sm font-bold text-cream-300/50">{String(gameState.burnPileCount)}</span>
-                  </div>
-                  <span className="block mt-1 text-[10px] font-bold uppercase tracking-wider text-cream-300/70">Burned</span>
-                </div>
-              )}
-            </div>
-          }
+          centerContent={centerPiles}
         />
       </div>
 
+      {/* Mobile-only: center piles in normal document flow */}
+      {isMobile && (
+        <div className="shrink-0 flex justify-center">
+          {centerPiles}
+        </div>
+      )}
+
+      {/* Spacer to push player area toward bottom */}
+      <div className="flex-1 min-h-0" />
+
       {/* My table cards (face-up and face-down) */}
       {myPlayer && (
-        <div className="shrink-0 flex flex-wrap items-center justify-center gap-3">
+        <div className="shrink-0 flex flex-wrap items-center justify-center gap-2 sm:gap-3">
           {(myPlayer.faceUpCards.length > 0 || myActiveZone === 'faceUp') && (
             <FaceUpCards
               cards={myPlayer.faceUpCards}
@@ -190,7 +220,7 @@ export function GameBoard({
       )}
 
       {/* Controls - always visible at bottom */}
-      <div className="shrink-0 mt-auto">
+      <div className="shrink-0">
         <GameControls
           isMyTurn={isMyTurn}
           isSubmitting={isSubmitting}

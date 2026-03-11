@@ -1,8 +1,8 @@
 /**
  * OpponentZone — Displays an opponent's visible state.
  *
- * Shows face-up cards, face-down card count, and hand card count (backs).
- * Opponents' hands are hidden (shown as card backs with count badge).
+ * Full mode: Shows face-up cards, face-down card count, and hand card count (backs).
+ * Compact mode: Shows summary badges (name, hand count, face-up/face-down counts).
  */
 'use client';
 
@@ -12,15 +12,57 @@ import type { SanitizedPlayerState } from '@/types/client';
 interface OpponentZoneProps {
   player: SanitizedPlayerState;
   isCurrentTurn: boolean;
-  /** Display name for the opponent, resolved from room state */
   displayName: string;
+  compact?: boolean;
 }
 
 export function OpponentZone({
   player,
   isCurrentTurn,
   displayName,
+  compact = false,
 }: OpponentZoneProps): React.JSX.Element {
+  if (compact) {
+    return (
+      <div
+        className={`
+          rounded-lg border-2 px-2.5 py-1.5 min-w-[110px] max-w-[140px] snap-start
+          transition-all duration-200 motion-reduce:transition-none
+          ${isCurrentTurn
+            ? 'border-gold-400 bg-gold-50/40 shadow-warm dark:bg-gold-950/20 dark:border-gold-600/60'
+            : 'border-[var(--color-border)] bg-[var(--color-card-bg)]'}
+        `}
+        aria-label={`${displayName}'s cards${isCurrentTurn ? ' (current turn)' : ''}`}
+      >
+        <div className="flex items-center justify-between gap-1.5">
+          <span className="text-[11px] font-bold truncate max-w-[80px]">
+            {displayName}
+          </span>
+          <div className="flex items-center gap-1">
+            {isCurrentTurn && (
+              <span className="inline-flex h-2 w-2 rounded-full bg-gold-500 animate-pulse motion-reduce:animate-none ring-1 ring-gold-400/30" aria-label="Current turn" />
+            )}
+          </div>
+        </div>
+        <div className="flex items-center gap-2 mt-1 text-[10px] font-semibold text-[var(--color-muted)]">
+          <span aria-label={`${String(player.handCount)} cards in hand`}>
+            {String(player.handCount)} in hand
+          </span>
+          {player.faceUpCards.length > 0 && (
+            <span aria-label={`${String(player.faceUpCards.length)} face-up`}>
+              {String(player.faceUpCards.length)} up
+            </span>
+          )}
+          {player.faceDownCount > 0 && (
+            <span aria-label={`${String(player.faceDownCount)} face-down`}>
+              {String(player.faceDownCount)} down
+            </span>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       className={`
@@ -80,7 +122,7 @@ export function OpponentZone({
           <div className="flex gap-1" aria-label="Face-up cards">
             {player.faceUpCards.map((card) => (
               <Card
-                key={card.type === 'joker' ? card.id : card.id}
+                key={card.id}
                 card={card}
                 size="sm"
                 isDisabled

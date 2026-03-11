@@ -2,13 +2,15 @@
  * PlayerHand — Displays the current player's hand cards in a fan layout.
  *
  * Cards are selectable. Selection state is managed by the UI store.
- * The component renders cards with appropriate playable/unplayable states.
+ * Mobile: uses sm-size cards with negative-margin overlap, no drag-and-drop.
+ * Desktop: uses md-size cards with flex-wrap layout, drag-and-drop enabled.
  */
 'use client';
 
 import { useCallback, useMemo } from 'react';
 
 import { Card } from '@/components/game/Card';
+import { useIsMobile } from '@/hooks/use-is-mobile';
 import { sortCardsByRank } from '@/lib/card-utils';
 import { useUIStore } from '@/stores/ui-store';
 import type { Card as CardType } from '@/types/client';
@@ -19,6 +21,7 @@ interface PlayerHandProps {
 }
 
 export function PlayerHand({ cards, isMyTurn }: PlayerHandProps): React.JSX.Element {
+  const isMobile = useIsMobile();
   const selectedCardIds = useUIStore((s) => s.selectedCardIds);
   const selectCard = useUIStore((s) => s.selectCard);
   const deselectCard = useUIStore((s) => s.deselectCard);
@@ -57,32 +60,44 @@ export function PlayerHand({ cards, isMyTurn }: PlayerHandProps): React.JSX.Elem
 
   if (cards.length === 0) {
     return (
-      <div className="flex items-center justify-center py-4">
+      <div className="flex items-center justify-center py-2 sm:py-4">
         <p className="text-sm font-medium text-[var(--color-muted)]">No cards in hand</p>
       </div>
     );
   }
 
+  const cardSize = isMobile ? 'sm' : 'md';
+  const canDrag = !isMobile && isMyTurn;
+
   return (
     <div
-      className="flex flex-wrap items-end justify-center gap-1 sm:gap-1.5 py-2 px-1"
+      className={
+        isMobile
+          ? 'flex items-end justify-center py-1 px-1 overflow-x-auto scrollbar-thin'
+          : 'flex flex-wrap items-end justify-center gap-1.5 py-2 px-1'
+      }
       role="group"
       aria-label="Your hand"
     >
-      {sortedCards.map((card) => {
-        const cardId = card.type === 'joker' ? card.id : card.id;
+      {sortedCards.map((card, index) => {
+        const cardId = card.id;
         return (
-          <Card
+          <div
             key={cardId}
-            card={card}
-            isSelected={selectedCardIds.includes(cardId)}
-            isPlayable={isMyTurn}
-            isDisabled={!isMyTurn}
-            isDraggable={isMyTurn}
-            size="md"
-            onClick={handleCardClick}
-            onDragStart={handleDragStart}
-          />
+            className={isMobile && index > 0 ? '-ml-2 relative' : 'relative'}
+            style={isMobile ? { zIndex: selectedCardIds.includes(cardId) ? 50 : index } : undefined}
+          >
+            <Card
+              card={card}
+              isSelected={selectedCardIds.includes(cardId)}
+              isPlayable={isMyTurn}
+              isDisabled={!isMyTurn}
+              isDraggable={canDrag}
+              size={cardSize}
+              onClick={handleCardClick}
+              onDragStart={canDrag ? handleDragStart : undefined}
+            />
+          </div>
         );
       })}
     </div>
