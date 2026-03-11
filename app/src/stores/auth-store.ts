@@ -12,7 +12,7 @@ import { devtools, persist } from 'zustand/middleware';
 import { api, ApiError, registerAuthInterceptor } from '@/lib/api-client';
 import { disconnectSocket } from '@/lib/socket';
 import { logger } from '@/lib/logger';
-import { authResponseSchema, refreshResponseSchema } from '@/lib/validators';
+import { authResponseSchema, guestAuthResponseSchema, refreshResponseSchema } from '@/lib/validators';
 import type { AuthenticatedUser } from '@/types/client';
 
 // ── State Shape ────────────────────────────────────────────────────
@@ -34,6 +34,7 @@ interface AuthActions {
     password: string,
     displayName: string,
   ) => Promise<void>;
+  guestLogin: (displayName: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshAccessToken: () => Promise<string | null>;
   clearErrors: () => void;
@@ -123,18 +124,50 @@ export const useAuthStore = create<AuthStore>()(
           }
         },
 
+        async guestLogin(displayName): Promise<void> {
+          set({ loginError: null });
+          try {
+            const raw = await api.guestLogin(displayName);
+            const parsed = guestAuthResponseSchema.parse(raw);
+            const { user, accessToken } = parsed.data;
+            set({
+              user: {
+                id: user.id,
+                email: '',
+                username: user.username,
+                displayName: user.displayName,
+                avatarUrl: null,
+                createdAt: null,
+                isGuest: true,
+              },
+              accessToken,
+              refreshToken: null,
+              loginError: null,
+            });
+            logger.info({ userId: user.id }, 'Guest login successful');
+          } catch (err) {
+            const message =
+              err instanceof ApiError ? err.message : 'An unexpected error occurred';
+            set({ loginError: message });
+            logger.warn({ err }, 'Guest login failed');
+          }
+        },
+
         async logout(): Promise<void> {
           // Disconnect socket before clearing auth state to prevent
           // the socket from lingering with an invalid token
           disconnectSocket();
 
-          try {
-            await api.logout();
-          } catch (err) {
-            logger.warn({ err }, 'Logout API call failed, clearing local state anyway');
+          const isGuest = get().user?.isGuest;
+          if (!isGuest) {
+            try {
+              await api.logout();
+            } catch (err) {
+              logger.warn({ err }, 'Logout API call failed, clearing local state anyway');
+            }
           }
           set(initialState);
-          logger.info('Logged out');
+          logger.info(isGuest ? 'Guest exited' : 'Logged out');
         },
 
         async refreshAccessToken(): Promise<string | null> {

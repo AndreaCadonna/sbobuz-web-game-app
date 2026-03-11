@@ -14,6 +14,7 @@ import type { AuthenticatedUser } from '@/types/client';
 interface UseAuthReturn {
   user: AuthenticatedUser | null;
   isAuthenticated: boolean;
+  isGuest: boolean;
   isRefreshing: boolean;
   loginError: string | null;
   registerError: string | null;
@@ -24,6 +25,7 @@ interface UseAuthReturn {
     password: string,
     displayName: string,
   ) => Promise<void>;
+  guestLogin: (displayName: string) => Promise<void>;
   logout: () => Promise<void>;
   clearErrors: () => void;
 }
@@ -31,11 +33,13 @@ interface UseAuthReturn {
 export function useAuth(): UseAuthReturn {
   const user = useAuthStore((s) => s.user);
   const isAuthenticated = useAuthStore(selectIsAuthenticated);
+  const isGuest = useAuthStore((s) => s.user?.isGuest ?? false);
   const isRefreshing = useAuthStore((s) => s.isRefreshing);
   const loginError = useAuthStore((s) => s.loginError);
   const registerError = useAuthStore((s) => s.registerError);
   const storeLogin = useAuthStore((s) => s.login);
   const storeRegister = useAuthStore((s) => s.register);
+  const storeGuestLogin = useAuthStore((s) => s.guestLogin);
   const storeLogout = useAuthStore((s) => s.logout);
   const storeClearErrors = useAuthStore((s) => s.clearErrors);
 
@@ -58,6 +62,13 @@ export function useAuth(): UseAuthReturn {
     [storeRegister],
   );
 
+  const guestLogin = useCallback(
+    async (displayName: string): Promise<void> => {
+      await storeGuestLogin(displayName);
+    },
+    [storeGuestLogin],
+  );
+
   const logout = useCallback(async (): Promise<void> => {
     await storeLogout();
   }, [storeLogout]);
@@ -69,11 +80,13 @@ export function useAuth(): UseAuthReturn {
   return {
     user,
     isAuthenticated,
+    isGuest,
     isRefreshing,
     loginError,
     registerError,
     login,
     register,
+    guestLogin,
     logout,
     clearErrors,
   };

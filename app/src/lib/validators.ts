@@ -106,6 +106,19 @@ export const authResponseSchema = z.object({
   }),
 });
 
+export const guestAuthResponseSchema = z.object({
+  success: z.literal(true),
+  data: z.object({
+    user: z.object({
+      id: z.string(),
+      username: z.string(),
+      displayName: z.string(),
+      isGuest: z.literal(true),
+    }),
+    accessToken: z.string(),
+  }),
+});
+
 export const refreshResponseSchema = z.object({
   success: z.literal(true),
   data: z.object({

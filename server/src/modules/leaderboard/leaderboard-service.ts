@@ -39,17 +39,17 @@ const logger = createModuleLogger('leaderboard');
 export async function processGameResult(input: GameResultInput): Promise<void> {
   const { gameId, winnerId, playerIds, playedAt, durationSeconds } = input;
 
-  // Filter out AI players (they don't have ratings)
-  const humanPlayerIds = playerIds.filter(id => !id.startsWith('ai_'));
+  // Filter out AI and guest players (they don't have ratings)
+  const humanPlayerIds = playerIds.filter(id => !id.startsWith('ai_') && !id.startsWith('guest:'));
 
   if (humanPlayerIds.length < 2) {
     logger.info({ gameId }, 'Skipping rating update: fewer than 2 human players');
     return;
   }
 
-  // Check if the winner is a human (AI wins don't affect ratings)
-  if (winnerId.startsWith('ai_')) {
-    logger.info({ gameId, winnerId }, 'Skipping rating update: AI winner');
+  // Check if the winner is a human (AI/guest wins don't affect ratings)
+  if (winnerId.startsWith('ai_') || winnerId.startsWith('guest:')) {
+    logger.info({ gameId, winnerId }, 'Skipping rating update: non-rated winner');
     return;
   }
 
