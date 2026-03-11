@@ -38,7 +38,7 @@ interface CardProps {
   isPlayable?: boolean;
   isDisabled?: boolean;
   isDraggable?: boolean;
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'xs' | 'sm' | 'md' | 'lg';
   onClick?: (cardId: string) => void;
   onDragStart?: (e: React.DragEvent, cardId: string) => void;
 }
@@ -50,12 +50,14 @@ interface SizeConfig {
   center: string;
 }
 
+const SIZE_XS: SizeConfig = { card: 'w-10 h-[3.75rem] rounded-md text-[10px]', rank: 'text-[8px]', suit: 'text-[10px]', center: 'text-base' };
 const SIZE_SM: SizeConfig = { card: 'w-12 h-[4.5rem] rounded-lg text-xs', rank: 'text-[10px]', suit: 'text-xs', center: 'text-lg' };
 const SIZE_MD: SizeConfig = { card: 'w-16 h-24 rounded-xl text-sm', rank: 'text-xs', suit: 'text-sm', center: 'text-2xl' };
 const SIZE_LG: SizeConfig = { card: 'w-20 h-[7.5rem] rounded-xl text-base', rank: 'text-sm', suit: 'text-base', center: 'text-3xl' };
 
-function getSizeConfig(size: 'sm' | 'md' | 'lg'): SizeConfig {
+function getSizeConfig(size: 'xs' | 'sm' | 'md' | 'lg'): SizeConfig {
   switch (size) {
+    case 'xs': return SIZE_XS;
     case 'sm': return SIZE_SM;
     case 'md': return SIZE_MD;
     case 'lg': return SIZE_LG;
@@ -220,7 +222,7 @@ export function Card({
 // ── Card Back (for opponent hands / draw pile) ───────────────────
 
 interface CardBackProps {
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'xs' | 'sm' | 'md' | 'lg';
 }
 
 export function CardBack({ size = 'md' }: CardBackProps): React.JSX.Element {

@@ -1,8 +1,8 @@
 /**
  * TableLayout — Positions opponents around a virtual table.
  *
- * Uses absolute positioning within a relative container to place
- * opponent zones geometrically based on player count (2-5 players).
+ * Desktop (sm+): Uses absolute positioning within a relative container.
+ * Mobile (<sm): Horizontal scrollable strip with compact opponent cards.
  * The current player is always at the bottom (rendered outside this component).
  */
 'use client';
@@ -87,35 +87,53 @@ export function TableLayout({
   );
 
   return (
-    <div className="relative min-h-[22rem] w-full" aria-label="Game table">
-      {/* Opponent zones at computed positions */}
-      {opponents.map((opponent, index) => {
-        const pos = positions[index];
-        if (!pos) return null;
-
-        return (
-          <div
-            key={opponent.id}
-            className="absolute w-[140px] sm:w-[180px] z-10"
-            style={{
-              top: pos.top,
-              left: pos.left,
-              transform: `translateX(${pos.translate})`,
-            }}
-          >
+    <>
+      {/* Mobile: horizontal scroll strip with compact opponent cards */}
+      <div className="sm:hidden" aria-label="Game table">
+        <div className="flex gap-2 overflow-x-auto pb-1 snap-x snap-mandatory scrollbar-thin">
+          {opponents.map((opponent) => (
             <OpponentZone
+              key={opponent.id}
               player={opponent}
               isCurrentTurn={currentPlayerId === opponent.id}
               displayName={playerNames[opponent.id] ?? 'Unknown'}
+              compact
             />
-          </div>
-        );
-      })}
-
-      {/* Center table area — play/draw piles */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-0">
-        {centerContent}
+          ))}
+        </div>
       </div>
-    </div>
+
+      {/* Desktop: absolute positioned layout */}
+      <div className="hidden sm:block relative min-h-[22rem] w-full" aria-label="Game table">
+        {/* Opponent zones at computed positions */}
+        {opponents.map((opponent, index) => {
+          const pos = positions[index];
+          if (!pos) return null;
+
+          return (
+            <div
+              key={opponent.id}
+              className="absolute w-[180px] z-10"
+              style={{
+                top: pos.top,
+                left: pos.left,
+                transform: `translateX(${pos.translate})`,
+              }}
+            >
+              <OpponentZone
+                player={opponent}
+                isCurrentTurn={currentPlayerId === opponent.id}
+                displayName={playerNames[opponent.id] ?? 'Unknown'}
+              />
+            </div>
+          );
+        })}
+
+        {/* Center table area — play/draw piles */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-0">
+          {centerContent}
+        </div>
+      </div>
+    </>
   );
 }

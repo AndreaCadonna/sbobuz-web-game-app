@@ -3,6 +3,7 @@
  *
  * Provides buttons to play selected cards, pick up the pile,
  * and declare direction (after playing a Queen).
+ * Compact on mobile: smaller buttons and tighter spacing.
  * All actions are sent to the server via socket; no local game logic.
  */
 'use client';
@@ -63,13 +64,15 @@ export function GameControls({
   // Awaiting queen declaration phase
   if (phase === 'awaiting_queen_declaration' && isMyTurn) {
     return (
-      <div className="space-y-3" role="group" aria-label="Declare direction">
-        <p className="text-sm text-center font-bold text-purple-700 dark:text-purple-300">
-          You played a Queen! Declare the next direction:
+      <div className="space-y-2 sm:space-y-3" role="group" aria-label="Declare direction">
+        <p className="text-xs sm:text-sm text-center font-bold text-purple-700 dark:text-purple-300">
+          <span className="sm:hidden">Declare direction:</span>
+          <span className="hidden sm:inline">You played a Queen! Declare the next direction:</span>
         </p>
-        <div className="flex items-center justify-center gap-3">
+        <div className="flex items-center justify-center gap-2 sm:gap-3">
           <Button
             variant="primary"
+            size="sm"
             onClick={handleDeclareHigher}
             isLoading={isSubmitting}
             disabled={isSubmitting}
@@ -78,6 +81,7 @@ export function GameControls({
           </Button>
           <Button
             variant="secondary"
+            size="sm"
             onClick={handleDeclareLower}
             isLoading={isSubmitting}
             disabled={isSubmitting}
@@ -86,7 +90,7 @@ export function GameControls({
           </Button>
         </div>
         {actionError && (
-          <p className="text-center text-sm font-medium text-red-600 dark:text-red-400" role="alert">
+          <p className="text-center text-xs sm:text-sm font-medium text-red-600 dark:text-red-400" role="alert">
             {actionError}
           </p>
         )}
@@ -96,17 +100,18 @@ export function GameControls({
 
   if (!isMyTurn) {
     return (
-      <div className="flex items-center justify-center py-3">
-        <p className="text-sm font-medium text-[var(--color-muted)]">Waiting for opponent...</p>
+      <div className="flex items-center justify-center py-2 sm:py-3">
+        <p className="text-xs sm:text-sm font-medium text-[var(--color-muted)]">Waiting for opponent...</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-3" role="group" aria-label="Game actions">
-      <div className="flex flex-wrap items-center justify-center gap-2">
+    <div className="space-y-2 sm:space-y-3" role="group" aria-label="Game actions">
+      <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-2">
         <Button
           variant="primary"
+          size="sm"
           onClick={handlePlay}
           isLoading={isSubmitting}
           disabled={isSubmitting || selectedCardCount === 0}
@@ -115,6 +120,7 @@ export function GameControls({
         </Button>
         <Button
           variant="secondary"
+          size="sm"
           onClick={handlePickUp}
           isLoading={isSubmitting}
           disabled={isSubmitting}
@@ -123,13 +129,13 @@ export function GameControls({
         </Button>
         {selectedCardCount > 0 && (
           <Button variant="ghost" size="sm" onClick={handleClearSelection}>
-            Clear Selection
+            Clear
           </Button>
         )}
       </div>
 
       {actionError && (
-        <p className="text-center text-sm font-medium text-red-600 dark:text-red-400" role="alert">
+        <p className="text-center text-xs sm:text-sm font-medium text-red-600 dark:text-red-400" role="alert">
           {actionError}
         </p>
       )}
