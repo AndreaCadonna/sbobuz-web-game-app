@@ -1,4 +1,6 @@
 /** @type {import('next').NextConfig} */
+const isDev = process.env.NODE_ENV !== 'production';
+
 const nextConfig = {
   output: 'standalone',
   reactStrictMode: true,
@@ -11,7 +13,7 @@ const nextConfig = {
 
     const csp = [
       "default-src 'self'",
-      "script-src 'self'",
+      `script-src 'self'${isDev ? " 'unsafe-inline' 'unsafe-eval'" : ''}`,
       "style-src 'self' 'unsafe-inline'",
       `connect-src 'self' ${apiUrl} ${socketUrl} ${wsUrl}`,
       "img-src 'self' data:",
