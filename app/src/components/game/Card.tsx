@@ -7,7 +7,7 @@
  */
 'use client';
 
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 
 import type { Suit } from '@sbobuz/shared';
 
@@ -37,8 +37,10 @@ interface CardProps {
   isSelected?: boolean;
   isPlayable?: boolean;
   isDisabled?: boolean;
+  isDraggable?: boolean;
   size?: 'sm' | 'md' | 'lg';
   onClick?: (cardId: string) => void;
+  onDragStart?: (e: React.DragEvent, cardId: string) => void;
 }
 
 interface SizeConfig {
@@ -66,26 +68,45 @@ export function Card({
   isSelected = false,
   isPlayable = true,
   isDisabled = false,
+  isDraggable = false,
   size = 'md',
   onClick,
+  onDragStart,
 }: CardProps): React.JSX.Element {
   const sizeClass = getSizeConfig(size);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const cardId = card.id;
 
   const handleClick = useCallback(() => {
     if (!isDisabled && !isFaceDown && onClick) {
-      onClick(card.type === 'joker' ? card.id : card.id);
+      onClick(cardId);
     }
-  }, [card, isDisabled, isFaceDown, onClick]);
+  }, [cardId, isDisabled, isFaceDown, onClick]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       if ((e.key === 'Enter' || e.key === ' ') && !isDisabled && !isFaceDown && onClick) {
         e.preventDefault();
-        onClick(card.type === 'joker' ? card.id : card.id);
+        onClick(cardId);
       }
     },
-    [card, isDisabled, isFaceDown, onClick],
+    [cardId, isDisabled, isFaceDown, onClick],
   );
+
+  const handleDragStart = useCallback(
+    (e: React.DragEvent) => {
+      setIsDragging(true);
+      onDragStart?.(e, cardId);
+    },
+    [cardId, onDragStart],
+  );
+
+  const handleDragEnd = useCallback(() => {
+    setIsDragging(false);
+  }, []);
+
+  const canDrag = isDraggable && !isDisabled && !isFaceDown;
 
   const cardLabel = useMemo(() => {
     if (isFaceDown) return 'Face-down card';
@@ -120,6 +141,9 @@ export function Card({
         type="button"
         onClick={handleClick}
         onKeyDown={handleKeyDown}
+        draggable={canDrag}
+        onDragStart={canDrag ? handleDragStart : undefined}
+        onDragEnd={canDrag ? handleDragEnd : undefined}
         disabled={isDisabled}
         aria-label={cardLabel}
         aria-pressed={isSelected}
@@ -129,6 +153,7 @@ export function Card({
           border-2 bg-cream-50 dark:bg-[#2a2035]
           transition-all duration-200 motion-reduce:transition-none
           opacity-100 disabled:opacity-100
+          ${isDragging ? 'opacity-50' : ''}
           ${isSelected
             ? 'border-brand-500 -translate-y-2 shadow-card-selected motion-reduce:translate-y-0'
             : 'border-cream-300 dark:border-cream-700 shadow-card'}
@@ -152,6 +177,9 @@ export function Card({
       type="button"
       onClick={handleClick}
       onKeyDown={handleKeyDown}
+      draggable={canDrag}
+      onDragStart={canDrag ? handleDragStart : undefined}
+      onDragEnd={canDrag ? handleDragEnd : undefined}
       disabled={isDisabled}
       aria-label={cardLabel}
       aria-pressed={isSelected}
@@ -161,6 +189,7 @@ export function Card({
         border-2 bg-cream-50 dark:bg-[#1e2a38]
         transition-all duration-200 motion-reduce:transition-none
         opacity-100 disabled:opacity-100
+        ${isDragging ? 'opacity-50' : ''}
         ${isSelected
           ? 'border-brand-500 -translate-y-2 shadow-card-selected motion-reduce:translate-y-0'
           : 'border-cream-300 dark:border-cream-700 shadow-card'}

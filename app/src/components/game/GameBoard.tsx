@@ -8,16 +8,16 @@
  */
 'use client';
 
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 
 import { DrawPile } from '@/components/game/DrawPile';
 import { FaceDownCards } from '@/components/game/FaceDownCards';
 import { FaceUpCards } from '@/components/game/FaceUpCards';
 import { GameControls } from '@/components/game/GameControls';
 import { GameOverModal } from '@/components/game/GameOverModal';
-import { OpponentZone } from '@/components/game/OpponentZone';
 import { PlayerHand } from '@/components/game/PlayerHand';
 import { PlayPile } from '@/components/game/PlayPile';
+import { TableLayout } from '@/components/game/TableLayout';
 import { TurnIndicator } from '@/components/game/TurnIndicator';
 import { useUIStore } from '@/stores/ui-store';
 import type { SanitizedGameState, SanitizedPlayerState } from '@/types/client';
@@ -105,6 +105,15 @@ export function GameBoard({
   const isCurrentUserWinner = winnerId === myPlayerId;
 
   const selectedCardCount = useUIStore((s) => s.selectedCardIds.length);
+  const clearCardSelection = useUIStore((s) => s.clearCardSelection);
+
+  const handleDropCards = useCallback(
+    (cardIds: string[]) => {
+      onPlayCards(cardIds);
+      clearCardSelection();
+    },
+    [onPlayCards, clearCardSelection],
+  );
 
   return (
     <div className="flex flex-col h-full min-h-0 gap-1.5 p-2 sm:p-3 overflow-y-auto scrollbar-thin">
@@ -120,48 +129,36 @@ export function GameBoard({
         />
       </div>
 
-      {/* Opponent zones - arranged in a row */}
-      {opponents.length > 0 && (
-        <div
-          className="shrink-0 flex flex-wrap items-start justify-center gap-1.5"
-          aria-label="Opponents"
-        >
-          {opponents.map((opponent) => (
-            <div
-              key={opponent.id}
-              className="min-w-[140px] max-w-[200px] flex-1"
-            >
-              <OpponentZone
-                player={opponent}
-                isCurrentTurn={currentPlayerId === opponent.id}
-                displayName={playerNames[opponent.id] ?? 'Unknown'}
-              />
+      {/* Table: opponents positioned geometrically + center play area */}
+      <div className="shrink-0">
+        <TableLayout
+          opponents={opponents}
+          currentPlayerId={currentPlayerId}
+          playerNames={playerNames}
+          centerContent={
+            <div className="flex items-center justify-center gap-6 sm:gap-10 py-3 sm:py-4 rounded-2xl bg-felt-table shadow-felt w-max px-6">
+              <div className="text-center">
+                <DrawPile count={gameState.drawPileCount} />
+                <span className="block mt-1 text-[10px] font-bold uppercase tracking-wider text-cream-300/70">Draw</span>
+              </div>
+              <div className="text-center">
+                <PlayPile pile={gameState.playPile} isDropTarget={isMyTurn} onDropCards={handleDropCards} />
+                <span className="block mt-1 text-[10px] font-bold uppercase tracking-wider text-cream-300/70">Pile</span>
+              </div>
+              {gameState.burnPileCount > 0 && (
+                <div className="text-center">
+                  <div
+                    className="flex h-24 w-16 items-center justify-center rounded-xl border-2 border-brand-600/40 bg-brand-900/40"
+                    aria-label={`Burn pile, ${String(gameState.burnPileCount)} cards`}
+                  >
+                    <span className="text-sm font-bold text-cream-300/50">{String(gameState.burnPileCount)}</span>
+                  </div>
+                  <span className="block mt-1 text-[10px] font-bold uppercase tracking-wider text-cream-300/70">Burned</span>
+                </div>
+              )}
             </div>
-          ))}
-        </div>
-      )}
-
-      {/* Center play area - the felt table */}
-      <div className="shrink-0 flex items-center justify-center gap-6 sm:gap-10 py-3 sm:py-4 rounded-2xl bg-felt-table shadow-felt mx-auto w-full max-w-sm">
-        <div className="text-center">
-          <DrawPile count={gameState.drawPileCount} />
-          <span className="block mt-1 text-[10px] font-bold uppercase tracking-wider text-cream-300/70">Draw</span>
-        </div>
-        <div className="text-center">
-          <PlayPile pile={gameState.playPile} />
-          <span className="block mt-1 text-[10px] font-bold uppercase tracking-wider text-cream-300/70">Pile</span>
-        </div>
-        {gameState.burnPileCount > 0 && (
-          <div className="text-center">
-            <div
-              className="flex h-24 w-16 items-center justify-center rounded-xl border-2 border-brand-600/40 bg-brand-900/40"
-              aria-label={`Burn pile, ${String(gameState.burnPileCount)} cards`}
-            >
-              <span className="text-sm font-bold text-cream-300/50">{String(gameState.burnPileCount)}</span>
-            </div>
-            <span className="block mt-1 text-[10px] font-bold uppercase tracking-wider text-cream-300/70">Burned</span>
-          </div>
-        )}
+          }
+        />
       </div>
 
       {/* My table cards (face-up and face-down) */}
