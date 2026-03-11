@@ -200,7 +200,8 @@ export const useAuthStore = create<AuthStore>()(
         partialize: (state) => ({
           user: state.user,
           accessToken: state.accessToken,
-          refreshToken: state.refreshToken,
+          // refreshToken is intentionally NOT persisted — it is managed
+          // exclusively via httpOnly cookies set by the server.
         }),
       },
     ),
@@ -212,7 +213,8 @@ export const useAuthStore = create<AuthStore>()(
 
 registerAuthInterceptor({
   getAccessToken: () => useAuthStore.getState().accessToken,
-  getRefreshToken: () => useAuthStore.getState().refreshToken,
+  // refreshToken is managed via httpOnly cookies — no client-side access needed
+  getRefreshToken: () => null,
   refreshAccessToken: () => useAuthStore.getState().refreshAccessToken(),
   onAuthFailure: () => {
     useAuthStore.setState(initialState);

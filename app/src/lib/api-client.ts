@@ -13,6 +13,17 @@ import { logger } from './logger';
 const API_BASE_URL =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:3000/api/v1';
 
+// Prevent accidental use of unencrypted HTTP in production
+if (
+  process.env.NODE_ENV === 'production' &&
+  API_BASE_URL.startsWith('http://')
+) {
+  throw new Error(
+    'NEXT_PUBLIC_API_BASE_URL must use https:// in production. ' +
+    'Sending authentication tokens over unencrypted HTTP is not allowed.',
+  );
+}
+
 /**
  * Error thrown when an API call fails.
  */

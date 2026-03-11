@@ -155,14 +155,39 @@ jobs:
         run: npm run test:integration
 
   # ------------------------------------------------------------------
-  # Job 4: Build Check (PR only)
+  # Job 4: Security Scan
+  # Runs npm audit for dependency vulnerabilities.
+  # ------------------------------------------------------------------
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: [lint-typecheck]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run npm audit
+        run: npm audit --audit-level=high
+
+  # ------------------------------------------------------------------
+  # Job 5: Build Check (PR only)
   # Verifies the Docker image builds successfully without pushing.
   # ------------------------------------------------------------------
   build-check:
     name: Build Check
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    needs: [unit-tests, integration-tests]
+    needs: [unit-tests, integration-tests, security-scan]
     if: github.event_name == 'pull_request'
     steps:
       - name: Checkout code
@@ -177,6 +202,15 @@ jobs:
           context: .
           file: infra/docker/Dockerfile.production
           push: false
+          load: true
           tags: sbobuz-server:build-check
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: sbobuz-server:build-check
+          format: table
+          exit-code: 1
+          severity: CRITICAL,HIGH
