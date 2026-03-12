@@ -104,7 +104,7 @@ export function TableLayout({
       </div>
 
       {/* Desktop: absolute positioned layout */}
-      <div className="hidden sm:block relative min-h-[22rem] w-full" aria-label="Game table">
+      <div className="hidden sm:block relative min-h-[22rem] w-full overflow-hidden" aria-label="Game table">
         {/* Opponent zones at computed positions */}
         {opponents.map((opponent, index) => {
           const pos = positions[index];
@@ -113,7 +113,7 @@ export function TableLayout({
           return (
             <div
               key={opponent.id}
-              className="absolute w-[180px] z-10"
+              className="absolute w-[180px] z-10 max-h-[40%] overflow-hidden"
               style={{
                 top: pos.top,
                 left: pos.left,
@@ -130,7 +130,7 @@ export function TableLayout({
         })}
 
         {/* Center table area — play/draw piles */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-0">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20">
           {centerContent}
         </div>
       </div>
