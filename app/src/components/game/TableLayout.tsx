@@ -1,64 +1,20 @@
 /**
- * TableLayout — Positions opponents around a virtual table.
+ * TableLayout — Positions opponents and center piles in a row-based layout.
  *
- * Desktop (sm+): Uses absolute positioning within a relative container.
+ * Layout varies by opponent count:
+ *   1 opp (2p): [top: opponent] [middle: table]
+ *   2 opp (3p): [top: opp1 | opp2] [middle: table]
+ *   3 opp (4p): [top: opp1] [middle: opp2 | table | opp3]
+ *   4 opp (5p): [top: opp1 | opp2] [middle: opp3 | table | opp4]
+ *
  * Mobile (<sm): Horizontal scrollable strip with compact opponent cards.
- * The current player is always at the bottom (rendered outside this component).
+ * The current player (me) is always at the bottom, rendered outside this component.
  */
 'use client';
 
-import { useMemo } from 'react';
-
 import { OpponentZone } from '@/components/game/OpponentZone';
+import { useViewportTier } from '@/hooks/use-viewport-tier';
 import type { SanitizedPlayerState } from '@/types/client';
-
-// ── Position Helpers ────────────────────────────────────────────
-
-interface SlotPosition {
-  top: string;
-  left: string;
-  translate: string;
-}
-
-/**
- * Returns absolute positions for opponents around the table.
- * Index 0 = top/left-most, proceeding clockwise.
- */
-function getOpponentPositions(opponentCount: number): SlotPosition[] {
-  switch (opponentCount) {
-    case 1:
-      // 2 players: single opponent centered at top
-      return [{ top: '2%', left: '50%', translate: '-50%' }];
-    case 2:
-      // 3 players: two opponents across the top
-      return [
-        { top: '2%', left: '28%', translate: '-50%' },
-        { top: '2%', left: '72%', translate: '-50%' },
-      ];
-    case 3:
-      // 4 players: one top-center, two at sides
-      return [
-        { top: '2%', left: '50%', translate: '-50%' },
-        { top: '42%', left: '2%', translate: '0' },
-        { top: '42%', left: '98%', translate: '-100%' },
-      ];
-    case 4:
-      // 5 players: two across top, two at sides
-      return [
-        { top: '2%', left: '25%', translate: '-50%' },
-        { top: '2%', left: '75%', translate: '-50%' },
-        { top: '42%', left: '2%', translate: '0' },
-        { top: '42%', left: '98%', translate: '-100%' },
-      ];
-    default:
-      // Fallback: stack at top
-      return Array.from({ length: opponentCount }, (_, i) => ({
-        top: '2%',
-        left: `${String(((i + 1) / (opponentCount + 1)) * 100)}%`,
-        translate: '-50%',
-      }));
-  }
-}
 
 // ── Props ───────────────────────────────────────────────────────
 
@@ -73,6 +29,32 @@ interface TableLayoutProps {
   centerContent: React.ReactNode;
 }
 
+// ── Opponent Card Helper ────────────────────────────────────────
+
+function OpponentCard({
+  player,
+  currentPlayerId,
+  playerNames,
+  compact,
+  cardSize,
+}: {
+  player: SanitizedPlayerState;
+  currentPlayerId: string | null;
+  playerNames: PlayerNameMap;
+  compact: boolean;
+  cardSize: 'xs' | 'sm';
+}): React.JSX.Element {
+  return (
+    <OpponentZone
+      player={player}
+      isCurrentTurn={currentPlayerId === player.id}
+      displayName={playerNames[player.id] ?? 'Unknown'}
+      compact={compact}
+      cardSize={cardSize}
+    />
+  );
+}
+
 // ── Component ───────────────────────────────────────────────────
 
 export function TableLayout({
@@ -81,59 +63,120 @@ export function TableLayout({
   playerNames,
   centerContent,
 }: TableLayoutProps): React.JSX.Element {
-  const positions = useMemo(
-    () => getOpponentPositions(opponents.length),
-    [opponents.length],
+  const tier = useViewportTier();
+  const isCompact = tier === 'compact';
+  const isMobile = tier === 'mobile';
+
+  const cardSize = 'xs' as const;
+  const rowGap = isCompact ? 'gap-2' : 'gap-3';
+
+  // Shared props for rendering an opponent
+  const opp = (player: SanitizedPlayerState): React.JSX.Element => (
+    <div key={player.id}>
+      <OpponentCard
+        player={player}
+        currentPlayerId={currentPlayerId}
+        playerNames={playerNames}
+        compact={isCompact}
+        cardSize={cardSize}
+      />
+    </div>
   );
 
-  return (
-    <>
-      {/* Mobile: horizontal scroll strip with compact opponent cards */}
-      <div className="sm:hidden" aria-label="Game table">
+  // ── Mobile: horizontal scroll strip ───────────────────────────
+  if (isMobile) {
+    return (
+      <div aria-label="Game table">
         <div className="flex gap-2 overflow-x-auto pb-1 snap-x snap-mandatory scrollbar-thin">
           {opponents.map((opponent) => (
-            <OpponentZone
-              key={opponent.id}
-              player={opponent}
-              isCurrentTurn={currentPlayerId === opponent.id}
-              displayName={playerNames[opponent.id] ?? 'Unknown'}
-              compact
-            />
+            <div key={opponent.id} className="min-w-[130px] max-w-[180px] snap-start shrink-0">
+              <OpponentCard
+                player={opponent}
+                currentPlayerId={currentPlayerId}
+                playerNames={playerNames}
+                compact
+                cardSize="xs"
+              />
+            </div>
           ))}
         </div>
       </div>
+    );
+  }
 
-      {/* Desktop: absolute positioned layout */}
-      <div className="hidden sm:block relative min-h-[22rem] w-full overflow-hidden" aria-label="Game table">
-        {/* Opponent zones at computed positions */}
-        {opponents.map((opponent, index) => {
-          const pos = positions[index];
-          if (!pos) return null;
+  // ── Desktop: row-based layout by opponent count ───────────────
 
-          return (
-            <div
-              key={opponent.id}
-              className="absolute w-[180px] z-10 max-h-[40%] overflow-hidden"
-              style={{
-                top: pos.top,
-                left: pos.left,
-                transform: `translateX(${pos.translate})`,
-              }}
-            >
-              <OpponentZone
-                player={opponent}
-                isCurrentTurn={currentPlayerId === opponent.id}
-                displayName={playerNames[opponent.id] ?? 'Unknown'}
-              />
-            </div>
-          );
-        })}
-
-        {/* Center table area — play/draw piles */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20">
+  // 1 opponent (2 players): top row = opponent, second row = table
+  if (opponents.length === 1) {
+    return (
+      <div className={`flex flex-col items-center ${rowGap}`} aria-label="Game table">
+        <div className="flex justify-center">
+          {opp(opponents[0]!)}
+        </div>
+        <div className="flex justify-center">
           {centerContent}
         </div>
       </div>
-    </>
+    );
+  }
+
+  // 2 opponents (3 players): top row = 2 opponents, second row = table
+  if (opponents.length === 2) {
+    return (
+      <div className={`flex flex-col items-center ${rowGap}`} aria-label="Game table">
+        <div className={`flex justify-center ${rowGap}`}>
+          {opp(opponents[0]!)}
+          {opp(opponents[1]!)}
+        </div>
+        <div className="flex justify-center">
+          {centerContent}
+        </div>
+      </div>
+    );
+  }
+
+  // 3 opponents (4 players): top row = opp1, middle row = opp2 | table | opp3
+  if (opponents.length === 3) {
+    return (
+      <div className={`flex flex-col items-center ${rowGap}`} aria-label="Game table">
+        <div className="flex justify-center">
+          {opp(opponents[0]!)}
+        </div>
+        <div className={`flex items-center justify-center ${rowGap}`}>
+          {opp(opponents[1]!)}
+          <div className="flex justify-center">{centerContent}</div>
+          {opp(opponents[2]!)}
+        </div>
+      </div>
+    );
+  }
+
+  // 4 opponents (5 players): top row = opp1 | opp2, middle row = opp3 | table | opp4
+  if (opponents.length === 4) {
+    return (
+      <div className={`flex flex-col items-center ${rowGap}`} aria-label="Game table">
+        <div className={`flex justify-center ${rowGap}`}>
+          {opp(opponents[0]!)}
+          {opp(opponents[1]!)}
+        </div>
+        <div className={`flex items-center justify-center ${rowGap}`}>
+          {opp(opponents[2]!)}
+          <div className="flex justify-center">{centerContent}</div>
+          {opp(opponents[3]!)}
+        </div>
+      </div>
+    );
+  }
+
+  // Fallback for >4 opponents: all in top row, table below
+  return (
+    <div className={`flex flex-col items-center ${rowGap}`} aria-label="Game table">
+      <div className={`flex flex-wrap justify-center ${rowGap}`}>
+        {opponents.map((opponent) => opp(opponent))}
+      </div>
+      <div className="flex justify-center">
+        {centerContent}
+      </div>
+    </div>
   );
 }

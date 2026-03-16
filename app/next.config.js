@@ -13,7 +13,7 @@ const nextConfig = {
 
     const csp = [
       "default-src 'self'",
-      `script-src 'self'${isDev ? " 'unsafe-inline' 'unsafe-eval'" : ''}`,
+      `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ''}`,
       "style-src 'self' 'unsafe-inline'",
       `connect-src 'self' ${apiUrl} ${socketUrl} ${wsUrl}`,
       "img-src 'self' data:",

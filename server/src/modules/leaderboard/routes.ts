@@ -74,6 +74,18 @@ export function createLeaderboardRouter(): Router {
     asyncHandler(async (req: Request, res: Response): Promise<void> => {
       const userId = req.userId!;
 
+      // Guest users have no ratings — short-circuit before DB query
+      if (req.isGuest) {
+        res.json({
+          success: true,
+          data: {
+            entry: null,
+            message: 'Guest accounts do not have ratings',
+          },
+        });
+        return;
+      }
+
       const entry = await getPlayerLeaderboardEntry(userId);
 
       if (!entry) {
@@ -99,6 +111,16 @@ export function createLeaderboardRouter(): Router {
     '/nearby',
     asyncHandler(async (req: Request, res: Response): Promise<void> => {
       const userId = req.userId!;
+
+      // Guest users have no ratings — short-circuit before DB query
+      if (req.isGuest) {
+        res.json({
+          success: true,
+          data: { entries: [] },
+        });
+        return;
+      }
+
       const range = Math.min(parseInt(req.query['range'] as string, 10) || 5, 20);
 
       const entries = await getNearbyLeaderboard(userId, range);
@@ -115,6 +137,16 @@ export function createLeaderboardRouter(): Router {
     '/history',
     asyncHandler(async (req: Request, res: Response): Promise<void> => {
       const userId = req.userId!;
+
+      // Guest users have no match history — short-circuit before DB query
+      if (req.isGuest) {
+        res.json({
+          success: true,
+          data: { history: [] },
+        });
+        return;
+      }
+
       const limit = Math.min(parseInt(req.query['limit'] as string, 10) || 20, 50);
 
       const history = await getPlayerMatchHistory(userId, limit);

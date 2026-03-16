@@ -325,9 +325,11 @@ async function main(): Promise<void> {
   // Dynamic import to avoid pulling in full config/database modules
   // when this file is imported as a library.
   const { createPool, closePool } = await import('./index.js');
+  const { loadConfig } = await import('../../shared/config/index.js');
 
   try {
-    const pool = await createPool();
+    const config = loadConfig();
+    const pool = createPool(config);
     const count = await runMigrations(pool);
     logger.info({ count }, 'Migration CLI complete');
     await closePool();
