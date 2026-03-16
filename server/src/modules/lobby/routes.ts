@@ -65,6 +65,7 @@ export function createLobbyRouter(): Router {
       maxRequests: 5,
       keyBy: 'userId',
     },
+    failClosed: config.RATE_LIMIT_FAIL_CLOSED,
   });
 
   // General lobby rate limiter
@@ -74,6 +75,7 @@ export function createLobbyRouter(): Router {
       maxRequests: 60,
       keyBy: 'userId',
     },
+    failClosed: config.RATE_LIMIT_FAIL_CLOSED,
   });
 
   // POST /rooms — create room (auth required)

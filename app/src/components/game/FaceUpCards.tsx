@@ -11,6 +11,7 @@ import { useCallback } from 'react';
 
 import { Card } from '@/components/game/Card';
 import { useIsMobile } from '@/hooks/use-is-mobile';
+import { useViewportTier } from '@/hooks/use-viewport-tier';
 import { useUIStore } from '@/stores/ui-store';
 import type { Card as CardType } from '@/types/client';
 
@@ -26,6 +27,7 @@ export function FaceUpCards({
   isActiveZone,
 }: FaceUpCardsProps): React.JSX.Element {
   const isMobile = useIsMobile();
+  const tier = useViewportTier();
   const selectedCardIds = useUIStore((s) => s.selectedCardIds);
   const selectCard = useUIStore((s) => s.selectCard);
   const deselectCard = useUIStore((s) => s.deselectCard);
@@ -52,7 +54,8 @@ export function FaceUpCards({
     );
   }
 
-  const cardSize = isMobile ? 'xs' : 'sm';
+  // mobile=xs, compact desktop=xs, full desktop=sm
+  const cardSize = tier === 'full' ? 'sm' : 'xs';
 
   return (
     <div

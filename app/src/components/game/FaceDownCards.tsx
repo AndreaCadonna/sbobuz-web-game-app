@@ -11,6 +11,7 @@ import { useCallback } from 'react';
 
 import { CardBack } from '@/components/game/Card';
 import { useIsMobile } from '@/hooks/use-is-mobile';
+import { useViewportTier } from '@/hooks/use-viewport-tier';
 
 interface FaceDownCardsProps {
   count: number;
@@ -26,6 +27,7 @@ export function FaceDownCards({
   onPlayBlind,
 }: FaceDownCardsProps): React.JSX.Element {
   const isMobile = useIsMobile();
+  const tier = useViewportTier();
   const canInteract = isMyTurn && isActiveZone;
 
   const handleClick = useCallback(
@@ -45,7 +47,8 @@ export function FaceDownCards({
     );
   }
 
-  const cardSize = isMobile ? 'xs' : 'sm';
+  // mobile=xs, compact desktop=xs, full desktop=sm
+  const cardSize = tier === 'full' ? 'sm' : 'xs';
 
   return (
     <div

@@ -11,6 +11,7 @@ import { useCallback, useMemo } from 'react';
 
 import { Card } from '@/components/game/Card';
 import { useIsMobile } from '@/hooks/use-is-mobile';
+import { useViewportTier } from '@/hooks/use-viewport-tier';
 import { sortCardsByRank } from '@/lib/card-utils';
 import { useUIStore } from '@/stores/ui-store';
 import type { Card as CardType } from '@/types/client';
@@ -22,6 +23,7 @@ interface PlayerHandProps {
 
 export function PlayerHand({ cards, isMyTurn }: PlayerHandProps): React.JSX.Element {
   const isMobile = useIsMobile();
+  const tier = useViewportTier();
   const selectedCardIds = useUIStore((s) => s.selectedCardIds);
   const selectCard = useUIStore((s) => s.selectCard);
   const deselectCard = useUIStore((s) => s.deselectCard);
@@ -66,7 +68,8 @@ export function PlayerHand({ cards, isMyTurn }: PlayerHandProps): React.JSX.Elem
     );
   }
 
-  const cardSize = isMobile ? 'sm' : 'md';
+  // mobile=sm, compact desktop=sm, full desktop=md
+  const cardSize = tier === 'full' ? 'md' : 'sm';
   const canDrag = !isMobile && isMyTurn;
 
   return (

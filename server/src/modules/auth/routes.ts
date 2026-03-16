@@ -47,6 +47,7 @@ export function createAuthRouter(): Router {
       maxRequests: 50,
       keyBy: 'ip',
     },
+    failClosed: config.RATE_LIMIT_FAIL_CLOSED,
   });
 
   const loginLimiter = createRateLimiter({
@@ -55,6 +56,7 @@ export function createAuthRouter(): Router {
       maxRequests: 10,
       keyBy: 'ip',
     },
+    failClosed: config.RATE_LIMIT_FAIL_CLOSED,
   });
 
   const refreshLimiter = createRateLimiter({
@@ -63,6 +65,7 @@ export function createAuthRouter(): Router {
       maxRequests: 10,
       keyBy: 'ip',
     },
+    failClosed: config.RATE_LIMIT_FAIL_CLOSED,
   });
 
   // POST /api/v1/auth/register
@@ -88,6 +91,7 @@ export function createAuthRouter(): Router {
       maxRequests: 100,
       keyBy: 'ip',
     },
+    failClosed: config.RATE_LIMIT_FAIL_CLOSED,
   });
 
   // POST /api/v1/auth/guest
