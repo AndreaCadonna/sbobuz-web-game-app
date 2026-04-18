@@ -7,19 +7,21 @@
  */
 'use client';
 
-import { useCallback, useMemo } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 
 import { DrawPile } from '@/components/game/DrawPile';
 import { FaceDownCards } from '@/components/game/FaceDownCards';
 import { FaceUpCards } from '@/components/game/FaceUpCards';
 import { GameControls } from '@/components/game/GameControls';
-import { GameMobileOverlay } from '@/components/game/GameMobileOverlay';
 import { GameOverModal } from '@/components/game/GameOverModal';
+import { MobileLandscapeBoard } from '@/components/game/MobileLandscapeBoard';
 import { PlayerHand } from '@/components/game/PlayerHand';
 import { PlayPile } from '@/components/game/PlayPile';
+import { RotatePhonePrompt } from '@/components/game/RotatePhonePrompt';
 import { TableLayout } from '@/components/game/TableLayout';
 import { TurnIndicator } from '@/components/game/TurnIndicator';
 import { useIsMobile } from '@/hooks/use-is-mobile';
+import { useOrientation } from '@/hooks/use-orientation';
 import { useViewportTier } from '@/hooks/use-viewport-tier';
 import { useUIStore } from '@/stores/ui-store';
 import type { SanitizedGameState, SanitizedPlayerState } from '@/types/client';
@@ -79,6 +81,25 @@ export function GameBoard({
   const isMobile = useIsMobile();
   const tier = useViewportTier();
   const isCompact = tier === 'compact';
+  const orientation = useOrientation();
+
+  // Mobile only: request landscape orientation lock when the board mounts.
+  // iOS Safari rejects this, which is fine — the rotate prompt handles the fallback.
+  useEffect(() => {
+    if (!isMobile) return;
+    const screenOrientation = (screen as unknown as { orientation?: { lock?: (o: string) => Promise<void>; unlock?: () => void } }).orientation;
+    if (!screenOrientation?.lock) return;
+    screenOrientation.lock('landscape').catch(() => {
+      // Silently ignore — browsers without fullscreen deny lock requests.
+    });
+    return () => {
+      try {
+        screenOrientation.unlock?.();
+      } catch {
+        // no-op
+      }
+    };
+  }, [isMobile]);
 
   const currentPlayerId = useMemo(() => {
     return gameState.turnOrder[gameState.currentPlayerIndex] ?? null;
@@ -116,6 +137,31 @@ export function GameBoard({
   );
 
   const pileSize = isMobile || isCompact ? ('sm' as const) : ('md' as const);
+
+  // On mobile, swap to a landscape-optimised layout. If the device is still
+  // in portrait, overlay a rotate-phone prompt per the design spec.
+  if (isMobile) {
+    return (
+      <>
+        <MobileLandscapeBoard
+          gameState={gameState}
+          myPlayerId={myPlayerId}
+          playerNames={playerNames}
+          isSubmitting={isSubmitting}
+          actionError={actionError}
+          isGameOver={isGameOver}
+          winnerId={winnerId}
+          gameOverReason={gameOverReason}
+          onPlayCards={onPlayCards}
+          onPickUpPile={onPickUpPile}
+          onPlayBlind={onPlayBlind}
+          onDeclareDirection={onDeclareDirection}
+          onGameOverClose={onGameOverClose}
+        />
+        {orientation === 'portrait' && <RotatePhonePrompt />}
+      </>
+    );
+  }
 
   // Center zone — sketchy draw / play pile / burn / flags
   const centerPiles = (
@@ -164,9 +210,8 @@ export function GameBoard({
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-2 overflow-y-auto p-2 scrollbar-thin sm:gap-3 sm:p-3">
-      {/* Mobile overlay (burger + turn badge) */}
-      {isMobile && (
-        <GameMobileOverlay
+      <div className="shrink-0">
+        <TurnIndicator
           currentPlayerName={currentPlayerName}
           isMyTurn={isMyTurn}
           direction={gameState.turnDirection}
@@ -174,21 +219,7 @@ export function GameBoard({
           nextCardOverride={gameState.nextCardOverride}
           phase={gameState.phase}
         />
-      )}
-
-      {/* Desktop turn indicator */}
-      {!isMobile && (
-        <div className="shrink-0">
-          <TurnIndicator
-            currentPlayerName={currentPlayerName}
-            isMyTurn={isMyTurn}
-            direction={gameState.turnDirection}
-            freePlay={gameState.freePlay}
-            nextCardOverride={gameState.nextCardOverride}
-            phase={gameState.phase}
-          />
-        </div>
-      )}
+      </div>
 
       {/* Board — paper-2 bg with ink border (Variant A) */}
       <div className="flex flex-1 flex-col gap-4 rounded-lg border-2 border-ink bg-paper-2 p-3 sm:p-5">
@@ -201,9 +232,6 @@ export function GameBoard({
             centerContent={centerPiles}
           />
         </div>
-
-        {/* Mobile-only: center piles below opponent strip */}
-        {isMobile && <div className="shrink-0 flex justify-center">{centerPiles}</div>}
 
         {/* Your table cards (face-up and face-down) */}
         {myPlayer && (
