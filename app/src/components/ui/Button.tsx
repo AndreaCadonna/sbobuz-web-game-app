@@ -1,11 +1,15 @@
 /**
- * Button — Reusable button component with variants and loading state.
+ * Button — Sketchy hand-drawn button primitive.
+ *
+ * Matches the wireframe `.btn`: 2px ink border, 6px radius, 2px hard shadow,
+ * Caveat 20px weight 600. Variants: primary (ink bg), secondary (paper),
+ * danger/accent (orange), green, ghost. Sizes: sm, md, lg.
  */
 'use client';
 
 import { forwardRef } from 'react';
 
-type ButtonVariant = 'primary' | 'secondary' | 'danger' | 'ghost';
+type ButtonVariant = 'primary' | 'secondary' | 'accent' | 'danger' | 'green' | 'ghost';
 type ButtonSize = 'sm' | 'md' | 'lg';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -17,19 +21,24 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary:
-    'bg-gradient-to-b from-gold-500 to-gold-600 text-brand-950 font-semibold hover:from-gold-400 hover:to-gold-500 focus-visible:ring-gold-400 disabled:from-gold-300 disabled:to-gold-400 disabled:text-brand-800/50 shadow-sm hover:shadow-warm',
+    'bg-ink text-paper border-ink shadow-sketch hover:-translate-y-0.5 hover:shadow-sketch-lg',
   secondary:
-    'border-2 border-[var(--color-border)] bg-transparent hover:bg-[var(--color-card-bg)] hover:border-gold-400/50 focus-visible:ring-gold-400',
+    'bg-paper text-ink border-ink shadow-sketch hover:bg-paper-2 hover:-translate-y-0.5 hover:shadow-sketch-lg',
+  accent:
+    'bg-accent text-white border-ink shadow-sketch hover:-translate-y-0.5 hover:shadow-sketch-lg',
+  // danger is an alias for accent (orange) — keeps existing call sites working
   danger:
-    'bg-gradient-to-b from-red-500 to-red-600 text-white font-semibold hover:from-red-400 hover:to-red-500 focus-visible:ring-red-400 disabled:from-red-300 disabled:to-red-400 shadow-sm',
+    'bg-accent text-white border-ink shadow-sketch hover:-translate-y-0.5 hover:shadow-sketch-lg',
+  green:
+    'bg-accent-2 text-white border-ink shadow-sketch hover:-translate-y-0.5 hover:shadow-sketch-lg',
   ghost:
-    'bg-transparent hover:bg-[var(--color-card-bg)] focus-visible:ring-gold-400 text-[var(--color-muted)] hover:text-[var(--color-foreground)]',
+    'bg-transparent text-ink border-transparent hover:bg-paper-2',
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
-  sm: 'h-8 px-3 text-sm rounded-lg',
-  md: 'h-10 px-5 text-sm rounded-xl',
-  lg: 'h-12 px-7 text-base rounded-xl',
+  sm: 'px-3 py-1 text-base',   // Caveat 16px
+  md: 'px-4 py-1.5 text-xl',   // Caveat 20px
+  lg: 'px-5 py-2 text-2xl',    // Caveat 24px (display button)
 };
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
@@ -46,17 +55,21 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
     },
     ref,
   ) {
+    const isDisabled = disabled ?? isLoading;
     return (
       <button
         ref={ref}
-        disabled={disabled || isLoading}
+        disabled={isDisabled}
         className={`
-          inline-flex items-center justify-center font-medium
-          transition-all duration-200 motion-reduce:transition-none
-          focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--color-background)]
-          disabled:pointer-events-none disabled:opacity-50
-          active:scale-[0.97] motion-reduce:active:scale-100
+          inline-flex items-center justify-center gap-1.5
+          font-display font-semibold leading-none
+          border-2 rounded-md
+          transition-transform duration-150 motion-reduce:transition-none
+          focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-3 focus-visible:ring-offset-2 focus-visible:ring-offset-paper
+          active:translate-x-px active:translate-y-px active:shadow-sketch-sm
+          disabled:opacity-45 disabled:bg-paper-2 disabled:text-ink-soft disabled:shadow-none disabled:cursor-not-allowed disabled:hover:translate-y-0
           ${variantClasses[variant]}
+          ${size === 'sm' ? 'shadow-sketch-sm' : ''}
           ${sizeClasses[size]}
           ${fullWidth ? 'w-full' : ''}
           ${className}
@@ -66,7 +79,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         {isLoading ? (
           <>
             <svg
-              className="mr-2 h-4 w-4 animate-spin"
+              className="mr-1 h-4 w-4 animate-spin"
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
               viewBox="0 0 24 24"

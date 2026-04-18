@@ -97,13 +97,13 @@ export default function GamePage(): React.JSX.Element {
   if (!gameState) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-        <div className="h-10 w-10 animate-spin rounded-full border-4 border-brand-200 border-t-brand-600" />
-        <p className="text-sm font-medium text-[var(--color-muted)]">
+        <div className="h-10 w-10 animate-spin rounded-full border-4 border-paper-2 border-t-ink" />
+        <p className="font-body text-sm text-ink-soft">
           {storeGameId ? 'Loading game...' : 'Waiting for game to start...'}
         </p>
         <button
           onClick={() => router.push('/lobby')}
-          className="text-sm font-semibold text-brand-600 hover:text-brand-500 underline underline-offset-2 transition-colors"
+          className="font-display text-lg text-ink underline underline-offset-2 hover:text-accent"
         >
           Return to Lobby
         </button>
@@ -115,10 +115,10 @@ export default function GamePage(): React.JSX.Element {
   if (gameState.phase === 'cancelled' && !isGameOver) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
-        <p className="font-display text-xl font-bold">Game was cancelled</p>
+        <p className="font-display text-3xl font-bold text-ink-soft">Game was cancelled</p>
         <button
           onClick={() => router.push('/lobby')}
-          className="text-sm font-semibold text-brand-600 hover:text-brand-500 underline underline-offset-2 transition-colors"
+          className="font-display text-lg text-ink underline underline-offset-2 hover:text-accent"
         >
           Return to Lobby
         </button>

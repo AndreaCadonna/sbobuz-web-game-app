@@ -1,6 +1,6 @@
 /**
- * GameMobileOverlay — Floating burger menu (top-left) and turn badge (top-right)
- * for mobile game view. Replaces the full AppHeader and TurnIndicator.
+ * GameMobileOverlay — Floating burger menu (top-left) and turn badge
+ * (top-right) for mobile game view. Sketchy hand-drawn styling.
  */
 'use client';
 
@@ -49,26 +49,19 @@ export function GameMobileOverlay({
 
   const directionArrow = direction === 1 ? '\u2191' : '\u2193';
 
-  // Build status badges
   const badges: string[] = [];
-  if (freePlay) badges.push('Free');
-  if (nextCardOverride === 'lower') badges.push('Lower');
-  if (phase === 'awaiting_queen_declaration' && isMyTurn) badges.push('Declare');
-  if (phase === 'awaiting_post_clear_play' && isMyTurn) badges.push('Cleared!');
+  if (freePlay) badges.push('free');
+  if (nextCardOverride === 'lower') badges.push('lower');
+  if (phase === 'awaiting_queen_declaration' && isMyTurn) badges.push('declare');
+  if (phase === 'awaiting_post_clear_play' && isMyTurn) badges.push('cleared');
 
   return (
     <>
       {/* Floating burger menu — top left */}
-      <div className="fixed top-2 left-2 z-50">
+      <div className="fixed left-2 top-2 z-50">
         <button
           onClick={() => setMenuOpen((p) => !p)}
-          className={`
-            flex h-9 w-9 items-center justify-center rounded-full
-            border-2 border-[var(--color-border)] bg-[var(--color-background)]/90 backdrop-blur-sm
-            shadow-md transition-colors
-            hover:bg-[var(--color-card-bg)]
-            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-400
-          `}
+          className="flex h-9 w-9 items-center justify-center rounded-md border-2 border-ink bg-paper shadow-sketch-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-3"
           aria-label={menuOpen ? 'Close menu' : 'Open menu'}
           aria-expanded={menuOpen}
         >
@@ -83,9 +76,8 @@ export function GameMobileOverlay({
           )}
         </button>
 
-        {/* Dropdown menu */}
         {menuOpen && (
-          <div className="absolute top-11 left-0 w-44 rounded-xl border-2 border-[var(--color-border)] bg-[var(--color-background)]/95 backdrop-blur-sm shadow-lg overflow-hidden">
+          <div className="absolute left-0 top-11 w-44 overflow-hidden rounded-md border-2 border-ink bg-paper shadow-sketch">
             <nav aria-label="Game menu">
               {navLinks.map((link) => {
                 const isActive = pathname.startsWith(link.href);
@@ -94,31 +86,25 @@ export function GameMobileOverlay({
                     key={link.href}
                     href={link.href}
                     onClick={() => setMenuOpen(false)}
-                    className={`
-                      block px-3 py-2 text-sm font-medium transition-colors
-                      ${isActive
-                        ? 'bg-brand-50 text-brand-700 dark:bg-brand-950/40 dark:text-brand-300'
-                        : 'text-[var(--color-muted)] hover:bg-[var(--color-card-bg)] hover:text-[var(--color-foreground)]'}
-                    `}
+                    className={`block px-3 py-2 font-display text-lg leading-none ${isActive ? 'bg-paper-2' : 'hover:bg-paper-2'}`}
                   >
+                    {isActive ? <span className="text-accent">{'\u25B8 '}</span> : null}
                     {link.label}
                   </Link>
                 );
               })}
             </nav>
             {user && (
-              <div className="border-t border-[var(--color-border)]">
-                <div className="flex items-center gap-2 px-3 py-1.5 text-xs text-[var(--color-muted)]">
-                  <span className="flex h-5 w-5 items-center justify-center rounded-full bg-gold-100 text-[9px] font-bold text-gold-800 dark:bg-gold-900 dark:text-gold-200">
-                    {user.displayName.charAt(0).toUpperCase()}
-                  </span>
-                  <span className="truncate">{user.displayName}</span>
+              <div className="border-t-2 border-dashed border-line-soft">
+                <div className="flex items-center gap-1.5 px-3 py-1.5 font-mono text-[11px] text-ink-soft">
+                  <span>{'\u{1F464} '}{user.displayName}</span>
+                  {isGuest && <span className="pill gray ml-auto text-[10px]">guest</span>}
                 </div>
                 <button
                   onClick={handleLogout}
-                  className="block w-full px-3 py-2 text-left text-sm font-medium text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950/50"
+                  className="block w-full px-3 py-2 text-left font-display text-base text-accent hover:bg-paper-2"
                 >
-                  {isGuest ? 'Exit' : 'Sign Out'}
+                  {isGuest ? 'exit' : 'sign out'}
                 </button>
               </div>
             )}
@@ -127,37 +113,27 @@ export function GameMobileOverlay({
       </div>
 
       {/* Floating turn badge — top right */}
-      <div className="fixed top-2 right-2 z-50">
+      <div className="fixed right-2 top-2 z-50">
         <div
-          className={`
-            flex items-center gap-1.5 rounded-full px-2.5 py-1
-            border-2 shadow-md backdrop-blur-sm
-            ${isMyTurn
-              ? 'border-gold-400 bg-gold-50/90 dark:bg-gold-950/80 dark:border-gold-600/60'
-              : 'border-[var(--color-border)] bg-[var(--color-background)]/90'}
-          `}
+          className={`flex items-center gap-1.5 rounded-md border-2 bg-paper px-2.5 py-1 shadow-sketch-sm ${isMyTurn ? 'border-accent-2' : 'border-ink'}`}
           role="status"
           aria-live="polite"
         >
           {isMyTurn && (
-            <span className="inline-flex h-2 w-2 rounded-full bg-gold-500 animate-pulse motion-reduce:animate-none" />
+            <span className="inline-flex h-2 w-2 rounded-full border-[1.5px] border-ink bg-accent-2 animate-pulse motion-reduce:animate-none" />
           )}
-          <span className="text-[11px] font-bold truncate max-w-[90px]">
+          <span className="max-w-[100px] truncate font-display text-sm font-bold leading-none">
             {isMyTurn ? 'Your turn' : currentPlayerName}
           </span>
-          <span className="text-[10px] font-semibold text-[var(--color-muted)]">{directionArrow}</span>
+          <span className="font-mono text-[10px] text-ink-soft">{directionArrow}</span>
           {badges.map((badge) => (
-            <span
-              key={badge}
-              className="rounded-full bg-brand-100 px-1.5 py-0.5 text-[8px] font-bold text-brand-700 dark:bg-brand-900/50 dark:text-brand-300"
-            >
+            <span key={badge} className="pill !px-1.5 !py-0 !text-[9px]">
               {badge}
             </span>
           ))}
         </div>
       </div>
 
-      {/* Click-away overlay to close menu */}
       {menuOpen && (
         <div
           className="fixed inset-0 z-40"

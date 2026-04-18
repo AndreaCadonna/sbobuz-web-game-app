@@ -2,72 +2,174 @@
 @tailwind components;
 @tailwind utilities;
 
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Source+Sans+3:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&family=Kalam:wght@300;400;700&family=Architects+Daughter&family=JetBrains+Mono:wght@400;600&display=swap');
 
 :root {
-  --color-background: #fefdf8;
-  --color-foreground: #2c1810;
-  --color-muted: #7a6b5d;
-  --color-border: #e8dcc8;
-  --color-card-bg: #faf4e8;
-  --color-success: #1e9956;
-  --color-warning: #d4a017;
-  --color-error: #c43e2a;
-  --color-info: #2563eb;
-  --color-felt: #0e4730;
-  --color-felt-light: #136e47;
-  --font-heading: 'Playfair Display', Georgia, 'Times New Roman', serif;
-  --font-body: 'Source Sans 3', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  /* Sketchy paper-notebook tokens (warm tint) */
+  --ink: #1a1a1a;
+  --ink-soft: #3a3a3a;
+  --paper: #fafaf6;
+  --paper-2: #f2efe6;
+  --line-soft: #8a8376;
+  --accent: #e85d3c;
+  --accent-2: #2a6f4f;
+  --accent-3: #2d5fa8;
+  --accent-y: #f2c14e;
+  --muted: #b8b1a1;
+
+  /* Legacy aliases kept so any stray old refs resolve to paper palette */
+  --color-background: var(--paper);
+  --color-foreground: var(--ink);
+  --color-muted: var(--ink-soft);
+  --color-border: var(--ink);
+  --color-card-bg: var(--paper-2);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-background: #131a24;
-    --color-foreground: #f0e8dc;
-    --color-muted: #9a8b7a;
-    --color-border: #2c3848;
-    --color-card-bg: #1a2332;
-    --color-felt: #0b3a27;
-    --color-felt-light: #0e4730;
-  }
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
 }
 
 body {
-  color: var(--color-foreground);
-  background: var(--color-background);
-  font-family: var(--font-body);
+  color: var(--ink);
+  background: var(--paper);
+  font-family: 'Kalam', 'Caveat', cursive;
+  font-weight: 400;
+  font-size: 17px;
+  line-height: 1.35;
+  /* Paper texture */
+  background-image:
+    radial-gradient(circle at 20% 30%, rgba(0, 0, 0, 0.02) 0 1px, transparent 1px),
+    radial-gradient(circle at 70% 80%, rgba(0, 0, 0, 0.015) 0 1px, transparent 1px);
+  background-size: 7px 7px, 11px 11px;
 }
 
-/* Heading font utility */
+h1,
+h2,
+h3,
+h4 {
+  font-family: 'Caveat', cursive;
+  font-weight: 700;
+  margin: 0;
+  letter-spacing: 0.5px;
+}
+
 .font-display {
-  font-family: var(--font-heading);
+  font-family: 'Caveat', cursive;
 }
 
-@layer utilities {
-  .text-muted {
-    color: var(--color-muted);
-  }
+.font-body {
+  font-family: 'Kalam', cursive;
 }
 
-/* Felt table background for game area */
+.font-mono {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+/* Hand-drawn primitives */
 @layer components {
-  .bg-felt-table {
-    background: radial-gradient(
-      ellipse at center,
-      var(--color-felt-light) 0%,
-      var(--color-felt) 70%
+  /* Sketchy box */
+  .sk {
+    border: 2px solid var(--ink);
+    border-radius: 6px;
+    background: var(--paper);
+    padding: 14px 16px;
+    position: relative;
+  }
+  .sk-alt {
+    background: var(--paper-2);
+  }
+  .sk-dashed {
+    border-style: dashed;
+  }
+  .sk-wobble {
+    border-radius: 12px 8px 14px 6px / 6px 14px 8px 12px;
+  }
+
+  /* Tiny mono label (used for form labels, zone labels) */
+  .label-tiny {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+  }
+
+  /* Zone label (slightly softer than label-tiny) */
+  .zone-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    margin-bottom: 4px;
+  }
+
+  /* Pill */
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    border: 1.5px solid var(--ink);
+    border-radius: 20px;
+    padding: 2px 10px;
+    font-size: 14px;
+    font-family: 'Kalam', cursive;
+    background: var(--paper);
+    color: var(--ink);
+    line-height: 1.2;
+  }
+  .pill.accent {
+    background: var(--accent);
+    color: #fff;
+  }
+  .pill.green {
+    background: var(--accent-2);
+    color: #fff;
+  }
+  .pill.blue {
+    background: var(--accent-3);
+    color: #fff;
+  }
+  .pill.yellow {
+    background: var(--accent-y);
+    color: var(--ink);
+  }
+  .pill.gray {
+    background: var(--paper-2);
+    color: var(--ink-soft);
+  }
+
+  /* Timer bar */
+  .timer-bar {
+    height: 10px;
+    border: 1.5px solid var(--ink);
+    border-radius: 4px;
+    background: var(--paper);
+    overflow: hidden;
+  }
+  .timer-bar-fill {
+    height: 100%;
+    background: repeating-linear-gradient(
+      45deg,
+      var(--accent-2) 0 4px,
+      #8bbd9d 4px 6px
     );
   }
-
-  .bg-felt-texture {
-    background-image:
-      radial-gradient(ellipse at center, var(--color-felt-light) 0%, var(--color-felt) 70%),
-      url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
-    background-size: cover;
+  .timer-bar-fill.low {
+    background: repeating-linear-gradient(
+      45deg,
+      var(--accent) 0 4px,
+      #f3a894 4px 6px
+    );
   }
 }
 
-/* Card play animation */
+/* Animations */
 @keyframes cardPlay {
   0% {
     transform: translateY(0) scale(1);
@@ -98,7 +200,6 @@ body {
   .animate-card-play {
     animation: cardPlay 0.4s ease-out forwards;
   }
-
   .animate-card-deal {
     animation: cardDeal 0.3s ease-out forwards;
   }
@@ -106,18 +207,19 @@ body {
 
 /* Focus styles */
 :focus-visible {
-  outline: 2px solid var(--color-warning);
+  outline: 2px solid var(--accent-3);
   outline-offset: 2px;
 }
 
 /* Custom scrollbar for game area */
 .scrollbar-thin::-webkit-scrollbar {
   width: 4px;
+  height: 4px;
 }
 .scrollbar-thin::-webkit-scrollbar-track {
   background: transparent;
 }
 .scrollbar-thin::-webkit-scrollbar-thumb {
-  background: var(--color-border);
+  background: var(--line-soft);
   border-radius: 999px;
 }

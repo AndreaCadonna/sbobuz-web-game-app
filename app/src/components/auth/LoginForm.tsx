@@ -1,5 +1,5 @@
 /**
- * LoginForm — Email/password login form with Zod validation.
+ * LoginForm — Sketchy email/password login form.
  */
 'use client';
 
@@ -26,7 +26,6 @@ export function LoginForm(): React.JSX.Element {
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated) {
       router.replace('/lobby');
@@ -37,7 +36,6 @@ export function LoginForm(): React.JSX.Element {
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const { name, value } = e.target;
       setFormData((prev) => ({ ...prev, [name]: value }));
-      // Clear field error on change
       setFieldErrors((prev) => ({ ...prev, [name]: undefined }));
       if (loginError) clearErrors();
     },
@@ -48,7 +46,6 @@ export function LoginForm(): React.JSX.Element {
     async (e: React.FormEvent) => {
       e.preventDefault();
 
-      // Validate
       const result = loginSchema.safeParse(formData);
       if (!result.success) {
         const errors: FieldErrors = {};
@@ -71,38 +68,48 @@ export function LoginForm(): React.JSX.Element {
   );
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+    <form onSubmit={handleSubmit} className="space-y-4" noValidate>
       <Input
-        label="Email"
+        label="email"
         name="email"
         type="email"
         autoComplete="email"
         value={formData.email}
         onChange={handleChange}
         error={fieldErrors.email}
-        placeholder="you@example.com"
+        placeholder="you@somewhere.com"
       />
 
       <Input
-        label="Password"
+        label="password"
         name="password"
         type="password"
         autoComplete="current-password"
         value={formData.password}
         onChange={handleChange}
         error={fieldErrors.password}
-        placeholder="Enter your password"
+        placeholder={'\u2022 \u2022 \u2022 \u2022 \u2022 \u2022 \u2022 \u2022'}
       />
 
       {loginError && (
-        <div className="rounded-xl bg-red-50 border border-red-200 p-3 text-sm font-medium text-red-700 dark:bg-red-950/50 dark:border-red-800 dark:text-red-300" role="alert">
+        <div
+          className="sk sk-alt !py-2 !px-3 text-sm font-semibold text-accent"
+          role="alert"
+        >
           {loginError}
         </div>
       )}
 
-      <Button type="submit" fullWidth isLoading={isSubmitting} size="lg">
-        Sign In
-      </Button>
+      <div className="pt-1">
+        <Button type="submit" variant="primary" size="md" isLoading={isSubmitting}>
+          Log in
+        </Button>
+      </div>
+
+      <div className="sk sk-alt !py-2 !px-3 font-body text-[13px] text-ink-soft">
+        <strong className="font-display text-base">{'\u26A0 '}rate limit:</strong> 5 tries / 15 min.
+        generic &quot;invalid credentials&quot; &mdash; no enumeration.
+      </div>
     </form>
   );
 }

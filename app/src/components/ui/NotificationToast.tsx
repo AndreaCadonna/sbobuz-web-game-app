@@ -1,5 +1,8 @@
 /**
- * NotificationToast — Toast notification container and individual toasts.
+ * NotificationToast — Sketchy notification toasts.
+ *
+ * Pill + sk styling, accent color for errors, green for success,
+ * yellow for warning, blue for info.
  */
 'use client';
 
@@ -7,10 +10,17 @@ import { useUIStore } from '@/stores/ui-store';
 import type { Notification, NotificationType } from '@/types/client';
 
 const typeStyles: Record<NotificationType, string> = {
-  info: 'border-l-blue-500 bg-blue-50 text-blue-900 dark:bg-blue-950/80 dark:text-blue-200',
-  success: 'border-l-brand-500 bg-brand-50 text-brand-900 dark:bg-brand-950/80 dark:text-brand-200',
-  warning: 'border-l-gold-500 bg-gold-50 text-gold-900 dark:bg-gold-950/80 dark:text-gold-200',
-  error: 'border-l-red-500 bg-red-50 text-red-900 dark:bg-red-950/80 dark:text-red-200',
+  info: 'bg-paper border-ink shadow-sketch',
+  success: 'bg-accent-2 text-white border-ink shadow-sketch',
+  warning: 'bg-accent-y text-ink border-ink shadow-sketch',
+  error: 'bg-accent text-white border-ink shadow-sketch',
+};
+
+const typeLabels: Record<NotificationType, string> = {
+  info: 'i',
+  success: '\u2713',
+  warning: '!',
+  error: '\u26A0',
 };
 
 function ToastItem({
@@ -24,18 +34,21 @@ function ToastItem({
     <div
       role="alert"
       className={`
-        animate-slide-up flex items-center gap-3 rounded-xl border-l-4 px-4 py-3 shadow-lg backdrop-blur-sm
+        animate-slide-up flex items-center gap-3 rounded-md border-2 px-3 py-2
         ${typeStyles[notification.type]}
       `}
     >
-      <p className="flex-1 text-sm font-medium">{notification.message}</p>
+      <span className="font-display text-lg font-bold leading-none" aria-hidden="true">
+        {typeLabels[notification.type]}
+      </span>
+      <p className="flex-1 font-body text-sm font-semibold">{notification.message}</p>
       <button
         onClick={() => onDismiss(notification.id)}
-        className="shrink-0 rounded-lg p-1 transition-colors hover:bg-black/10"
+        className="shrink-0 rounded border border-current px-1.5 font-display text-xs leading-none opacity-80 transition-opacity hover:opacity-100"
         aria-label="Dismiss notification"
       >
         <svg
-          className="h-4 w-4"
+          className="h-3 w-3"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -44,7 +57,7 @@ function ToastItem({
           <path
             strokeLinecap="round"
             strokeLinejoin="round"
-            strokeWidth={2}
+            strokeWidth={3}
             d="M6 18L18 6M6 6l12 12"
           />
         </svg>

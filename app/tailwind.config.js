@@ -4,70 +4,46 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        brand: {
-          50: '#f0faf4',
-          100: '#d6f0e0',
-          200: '#a8dfc0',
-          300: '#6fcc99',
-          400: '#3db573',
-          500: '#1e9956',
-          600: '#167a44',
-          700: '#126138',
-          800: '#0d4a2e',
-          900: '#0a3a24',
-          950: '#062317',
+        // Sketchy paper-notebook palette
+        ink: {
+          DEFAULT: '#1a1a1a',
+          soft: '#3a3a3a',
         },
-        gold: {
-          50: '#fefce8',
-          100: '#fef3c7',
-          200: '#fde68a',
-          300: '#fcd34d',
-          400: '#f6c026',
-          500: '#d4a017',
-          600: '#b8860b',
-          700: '#92690e',
-          800: '#785614',
-          900: '#654717',
-          950: '#3b2709',
+        paper: {
+          DEFAULT: '#fafaf6',
+          2: '#f2efe6',
         },
-        felt: {
-          50: '#f0faf5',
-          100: '#d0eede',
-          200: '#a3ddbf',
-          300: '#6ec49a',
-          400: '#3ba874',
-          500: '#1f8a5a',
-          600: '#136e47',
-          700: '#10593b',
-          800: '#0e4730',
-          900: '#0b3a27',
-          950: '#062117',
+        accent: {
+          DEFAULT: '#e85d3c', // orange — CTAs, alerts, your turn
+          2: '#2a6f4f',       // green — ready / active / success
+          3: '#2d5fa8',       // blue — selected
+          y: '#f2c14e',       // yellow — host
         },
-        cream: {
-          50: '#fefdf8',
-          100: '#fdf6e3',
-          200: '#f5e6c8',
-          300: '#ead1a0',
-          400: '#ddb872',
-          500: '#d1a04e',
-          600: '#c08b3c',
-          700: '#a07032',
-          800: '#825a2e',
-          900: '#6b4a28',
-          950: '#3c2614',
-        },
-        surface: {
-          DEFAULT: '#fefdf8',
-          dark: '#1a2332',
-        },
+        'line-soft': '#8a8376',
+        muted: '#b8b1a1',
+      },
+      fontFamily: {
+        display: ['Caveat', 'cursive'],
+        body: ['Kalam', 'cursive'],
+        accent: ['"Architects Daughter"', 'cursive'],
+        mono: ['"JetBrains Mono"', 'monospace'],
+      },
+      boxShadow: {
+        sketch: '2px 2px 0 #1a1a1a',
+        'sketch-sm': '1px 1px 0 #1a1a1a',
+        'sketch-lg': '4px 4px 0 #1a1a1a',
+        'sketch-accent': '2px 2px 0 #e85d3c',
+        'sketch-green': '2px 2px 0 #2a6f4f',
+        'sketch-blue': '2px 2px 0 #2d5fa8',
+      },
+      borderRadius: {
+        wobble: '12px 8px 14px 6px',
       },
       animation: {
         'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
         'slide-up': 'slideUp 0.3s ease-out',
         'slide-down': 'slideDown 0.3s ease-out',
         'fade-in': 'fadeIn 0.2s ease-out',
-        'glow': 'glow 2s ease-in-out infinite alternate',
-        'float': 'float 3s ease-in-out infinite',
       },
       keyframes: {
         slideUp: {
@@ -82,24 +58,6 @@ module.exports = {
           '0%': { opacity: '0' },
           '100%': { opacity: '1' },
         },
-        glow: {
-          '0%': { boxShadow: '0 0 5px rgba(212, 160, 23, 0.2)' },
-          '100%': { boxShadow: '0 0 20px rgba(212, 160, 23, 0.4)' },
-        },
-        float: {
-          '0%, 100%': { transform: 'translateY(0)' },
-          '50%': { transform: 'translateY(-4px)' },
-        },
-      },
-      borderRadius: {
-        '4xl': '2rem',
-      },
-      boxShadow: {
-        'card': '0 2px 8px rgba(0,0,0,0.12), 0 1px 3px rgba(0,0,0,0.08)',
-        'card-hover': '0 8px 24px rgba(0,0,0,0.16), 0 2px 6px rgba(0,0,0,0.1)',
-        'card-selected': '0 4px 16px rgba(30, 153, 86, 0.3), 0 0 0 2px rgba(30, 153, 86, 0.5)',
-        'felt': 'inset 0 2px 12px rgba(0,0,0,0.2)',
-        'warm': '0 4px 20px rgba(212, 160, 23, 0.15)',
       },
     },
   },

@@ -7,28 +7,30 @@ import { RegisterForm } from '@/components/auth/RegisterForm';
 export default function RegisterPage(): React.JSX.Element {
   return (
     <main className="flex min-h-screen items-center justify-center px-4 py-8">
-      <div className="w-full max-w-md space-y-6">
-        <div className="text-center">
-          <Link href="/" className="font-display text-3xl font-bold text-brand-700 dark:text-brand-400">
-            Sbobuz
+      <div className="w-full max-w-md">
+        <div className="mb-6 flex items-center gap-2">
+          <Link href="/" className="flex items-center gap-2 font-display text-[28px] leading-none text-ink">
+            <span
+              className="inline-block h-[18px] w-[18px] rounded-full border-2 border-ink bg-accent"
+              style={{ transform: 'translateY(2px) rotate(-4deg)' }}
+              aria-hidden="true"
+            />
+            <span>Sbobuz</span>
           </Link>
-          <h1 className="mt-4 font-display text-2xl font-bold">Create Account</h1>
-          <p className="mt-1.5 text-sm text-[var(--color-muted)]">
-            Join Sbobuz and start playing
-          </p>
         </div>
 
-        <div className="rounded-2xl border-2 border-[var(--color-border)] bg-[var(--color-card-bg)] p-6 shadow-card">
-          <RegisterForm />
+        <div className="sk sk-wobble p-6">
+          <div className="label-tiny mb-2">variant B {'\u00B7'} register form</div>
+          <h1 className="font-display text-3xl font-bold">Make an account</h1>
+          <div className="mt-4">
+            <RegisterForm />
+          </div>
         </div>
 
-        <p className="text-center text-sm text-[var(--color-muted)]">
-          Already have an account?{' '}
-          <Link
-            href="/login"
-            className="font-semibold text-brand-600 hover:text-brand-500 transition-colors"
-          >
-            Sign in
+        <p className="mt-5 text-center font-body text-sm text-ink-soft">
+          Already have one?{' '}
+          <Link href="/login" className="font-semibold text-ink underline underline-offset-2 hover:text-accent">
+            log in
           </Link>
         </p>
       </div>
