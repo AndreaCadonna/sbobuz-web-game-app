@@ -1,5 +1,5 @@
 /**
- * RegisterForm — Registration form with Zod validation and password strength indicator.
+ * RegisterForm — Sketchy registration form with password strength meter.
  */
 'use client';
 
@@ -31,9 +31,9 @@ function getPasswordStrength(password: string): {
   if (/[0-9]/.test(password)) score++;
   if (/[^A-Za-z0-9]/.test(password)) score++;
 
-  if (score <= 2) return { level: 'weak', width: 'w-1/3', color: 'bg-red-400' };
-  if (score <= 3) return { level: 'fair', width: 'w-2/3', color: 'bg-gold-500' };
-  return { level: 'strong', width: 'w-full', color: 'bg-brand-500' };
+  if (score <= 2) return { level: 'weak', width: 'w-1/3', color: 'bg-accent' };
+  if (score <= 3) return { level: 'fair', width: 'w-2/3', color: 'bg-accent-y' };
+  return { level: 'strong', width: 'w-full', color: 'bg-accent-2' };
 }
 
 export function RegisterForm(): React.JSX.Element {
@@ -107,32 +107,32 @@ export function RegisterForm(): React.JSX.Element {
   );
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+    <form onSubmit={handleSubmit} className="space-y-4" noValidate>
       <Input
-        label="Email"
+        label="email"
         name="email"
         type="email"
         autoComplete="email"
         value={formData.email}
         onChange={handleChange}
         error={fieldErrors.email}
-        placeholder="you@example.com"
+        placeholder="you@somewhere.com"
       />
 
       <Input
-        label="Username"
+        label="username"
         name="username"
         type="text"
         autoComplete="username"
         value={formData.username}
         onChange={handleChange}
         error={fieldErrors.username}
-        placeholder="Choose a username"
-        helperText="3-20 characters, letters, numbers, hyphens, underscores"
+        placeholder="card_shark_42"
+        helperText="3–20, a-z 0-9 _"
       />
 
       <Input
-        label="Display Name"
+        label="display name"
         name="displayName"
         type="text"
         autoComplete="name"
@@ -142,25 +142,26 @@ export function RegisterForm(): React.JSX.Element {
         placeholder="How others will see you"
       />
 
-      <div className="space-y-1.5">
+      <div className="space-y-2">
         <Input
-          label="Password"
+          label="password"
           name="password"
           type="password"
           autoComplete="new-password"
           value={formData.password}
           onChange={handleChange}
           error={fieldErrors.password}
-          placeholder="At least 8 characters"
+          placeholder={'\u2022 \u2022 \u2022 \u2022 \u2022 \u2022 \u2022 \u2022'}
+          helperText="8+ chars, Aa1"
         />
         {formData.password.length > 0 && (
           <div className="flex items-center gap-2">
-            <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-[var(--color-border)]">
+            <div className="h-2 flex-1 overflow-hidden rounded-full border-[1.5px] border-ink bg-paper">
               <div
-                className={`h-full rounded-full transition-all duration-300 ${passwordStrength.color} ${passwordStrength.width}`}
+                className={`h-full transition-all duration-300 ${passwordStrength.color} ${passwordStrength.width}`}
               />
             </div>
-            <span className="text-xs font-semibold text-[var(--color-muted)] capitalize">
+            <span className="font-mono text-[10px] uppercase tracking-wider text-ink-soft">
               {passwordStrength.level}
             </span>
           </div>
@@ -168,25 +169,27 @@ export function RegisterForm(): React.JSX.Element {
       </div>
 
       <Input
-        label="Confirm Password"
+        label="confirm password"
         name="confirmPassword"
         type="password"
         autoComplete="new-password"
         value={formData.confirmPassword}
         onChange={handleChange}
         error={fieldErrors.confirmPassword}
-        placeholder="Repeat your password"
+        placeholder={'\u2022 \u2022 \u2022 \u2022 \u2022 \u2022 \u2022 \u2022'}
       />
 
       {registerError && (
-        <div className="rounded-xl bg-red-50 border border-red-200 p-3 text-sm font-medium text-red-700 dark:bg-red-950/50 dark:border-red-800 dark:text-red-300" role="alert">
+        <div className="sk sk-alt !py-2 !px-3 text-sm font-semibold text-accent" role="alert">
           {registerError}
         </div>
       )}
 
-      <Button type="submit" fullWidth isLoading={isSubmitting} size="lg">
-        Create Account
-      </Button>
+      <div className="pt-1">
+        <Button type="submit" variant="primary" size="md" isLoading={isSubmitting}>
+          Create account
+        </Button>
+      </div>
     </form>
   );
 }

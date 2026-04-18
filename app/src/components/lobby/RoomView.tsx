@@ -1,8 +1,8 @@
 /**
- * RoomView — Room detail view with player list, ready/start buttons.
+ * RoomView — Sketchy room waiting area.
  *
- * Displays the room waiting area where players gather before a game starts.
- * Players are arranged in a circular layout.
+ * Two-col layout: seats grid on the left, settings + invite + AI add +
+ * start-game controls on the right. Matches wireframe variant A.
  */
 'use client';
 
@@ -45,10 +45,9 @@ export function RoomView({ room }: RoomViewProps): React.JSX.Element {
   }, [room.players, room.minPlayers]);
 
   const canStart = isHost && allPlayersReady && room.players.length >= room.minPlayers;
-  const canAddAI = isHost && room.settings.allowAI && room.players.length < room.maxPlayers
-    && room.status !== 'IN_GAME';
+  const canAddAI =
+    isHost && room.settings.allowAI && room.players.length < room.maxPlayers && room.status !== 'IN_GAME';
 
-  // Navigate to the game page when game:started socket event provides both gameId and state
   useEffect(() => {
     if (gameId && gameState) {
       router.push(`/game/${gameId}`);
@@ -68,9 +67,12 @@ export function RoomView({ room }: RoomViewProps): React.JSX.Element {
     router.push('/lobby');
   }, [leaveRoom, room.roomId, router]);
 
-  const handleAddAI = useCallback((difficulty: 'easy' | 'medium' = 'easy'): void => {
-    void addAIPlayer(room.roomId, difficulty);
-  }, [addAIPlayer, room.roomId]);
+  const handleAddAI = useCallback(
+    (difficulty: 'easy' | 'medium' = 'easy'): void => {
+      void addAIPlayer(room.roomId, difficulty);
+    },
+    [addAIPlayer, room.roomId],
+  );
 
   const handleCopyInviteLink = useCallback((): void => {
     const url = `${window.location.origin}/lobby/${room.roomId}?invite=${room.inviteCode}`;
@@ -78,6 +80,9 @@ export function RoomView({ room }: RoomViewProps): React.JSX.Element {
       addNotification('success', 'Invite link copied to clipboard');
     });
   }, [room.roomId, room.inviteCode, addNotification]);
+
+  const humanReadyCount = room.players.filter((p) => !p.isAI && p.isReady).length;
+  const humanCount = room.players.filter((p) => !p.isAI).length;
 
   // Build player slots (up to maxPlayers)
   const slots = Array.from({ length: room.maxPlayers }, (_, i) => {
@@ -92,115 +97,117 @@ export function RoomView({ room }: RoomViewProps): React.JSX.Element {
     );
   });
 
+  const hostName = room.players.find((p) => p.isHost)?.displayName ?? 'host';
+
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
+    <div className="mx-auto max-w-5xl space-y-5">
       {/* Room header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <h1 className="font-display text-2xl font-bold">{room.name}</h1>
-          <p className="text-sm text-[var(--color-muted)]">
-            {room.players.length}/{room.maxPlayers} players
-            {room.isPrivate && ' (Private)'}
+          <h1 className="font-display text-3xl font-bold">{room.name}</h1>
+          <p className="mt-0.5 font-body text-sm text-ink-soft">
+            hosted by <strong className="text-ink">{hostName}</strong> {'\u00B7'}{' '}
+            {room.isPrivate ? 'private' : 'public'} {'\u00B7'}{' '}
+            <span className="pill green">{room.status.toLowerCase()}</span>
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="secondary" size="sm" onClick={handleCopyInviteLink}>
+            {'\u{1F4CB} '}copy invite link
+          </Button>
+        </div>
+      </div>
+
+      <div className="grid gap-5 lg:grid-cols-[2fr_1fr]">
+        {/* Left: seats */}
+        <div>
+          <div className="label-tiny">
+            players {'\u00B7'} {room.players.length} of {room.maxPlayers} {'\u00B7'} min {room.minPlayers} to start
+          </div>
+          <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {slots}
+          </div>
+        </div>
+
+        {/* Right: settings + controls */}
+        <div className="space-y-3">
+          <div className="sk">
+            <div className="label-tiny">room settings {'\u00B7'} host only</div>
+            <div className="mt-2 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 font-body text-[15px]">
+              <div>max players</div>
+              <div>
+                <strong>{room.maxPlayers}</strong>{' '}
+                <span className="text-line-soft">({room.minPlayers}–5)</span>
+              </div>
+              <div>turn timer</div>
+              <div>
+                <strong>{room.settings.turnTimerSeconds}s</strong>
+              </div>
+              <div>allow AI</div>
+              <div>{room.settings.allowAI ? '\u2713 on' : 'off'}</div>
+              <div>visibility</div>
+              <div>{room.isPrivate ? '\u{1F512} private' : '\u{1F310} public'}</div>
+            </div>
+          </div>
+
           {room.isPrivate && (
-            <Button variant="ghost" size="sm" onClick={handleCopyInviteLink}>
-              Copy Invite Link
-            </Button>
+            <div className="sk sk-alt">
+              <div className="label-tiny">invite link</div>
+              <div className="mt-1 overflow-x-auto rounded border-[1.5px] border-dashed border-ink bg-paper p-1.5 font-mono text-xs text-ink">
+                sbobuz.app/lobby/{room.roomId}?invite={room.inviteCode}
+              </div>
+            </div>
           )}
-        </div>
-      </div>
 
-      {/* Room settings */}
-      <div className="rounded-2xl border-2 border-[var(--color-border)] bg-[var(--color-card-bg)] p-4">
-        <h2 className="mb-2 text-xs font-bold uppercase tracking-wider text-[var(--color-muted)]">Settings</h2>
-        <div className="flex flex-wrap gap-4 text-sm">
-          <div className="flex items-center gap-1.5">
-            <span className="text-[var(--color-muted)]">Timer:</span>
-            <span className="font-semibold">{room.settings.turnTimerSeconds}s</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="text-[var(--color-muted)]">Max:</span>
-            <span className="font-semibold">{room.settings.maxPlayers} players</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="text-[var(--color-muted)]">AI:</span>
-            <span className="font-semibold">{room.settings.allowAI ? 'Allowed' : 'Disabled'}</span>
-          </div>
-        </div>
-      </div>
+          {canAddAI && (
+            <div className="sk">
+              <div className="label-tiny">add AI opponent</div>
+              <div className="mt-2 flex flex-wrap gap-2">
+                <Button variant="secondary" size="sm" onClick={() => handleAddAI('easy')}>
+                  easy
+                </Button>
+                <Button variant="primary" size="sm" onClick={() => handleAddAI('medium')}>
+                  medium
+                </Button>
+              </div>
+            </div>
+          )}
 
-      {/* Player circle layout */}
-      <div
-        className="flex flex-wrap items-center justify-center gap-2 rounded-2xl border-2 border-[var(--color-border)] bg-felt-table p-6 sm:p-8 min-h-[200px]"
-        aria-label="Players in room"
-      >
-        {slots}
-      </div>
+          {error && (
+            <div className="sk sk-alt !py-2 !px-3 text-sm font-semibold text-accent" role="alert">
+              {error}
+            </div>
+          )}
 
-      {/* Error display */}
-      {error && (
-        <div className="rounded-xl bg-red-50 border border-red-200 p-3 text-sm font-medium text-red-700 dark:bg-red-950/50 dark:border-red-800 dark:text-red-300" role="alert">
-          {error}
-        </div>
-      )}
-
-      {/* Action buttons */}
-      <div className="flex flex-wrap gap-3">
-        {!isHost && (
-          <Button
-            variant={isReady ? 'secondary' : 'primary'}
-            onClick={handleToggleReady}
-          >
-            {isReady ? 'Not Ready' : 'Ready'}
-          </Button>
-        )}
-
-        {isHost && (
-          <>
-            <Button
-              variant={isReady ? 'secondary' : 'primary'}
-              onClick={handleToggleReady}
-            >
-              {isReady ? 'Not Ready' : 'Ready'}
+          {/* Action buttons */}
+          <div className="flex flex-col gap-2.5">
+            {isHost ? (
+              <>
+                <Button variant="green" size="lg" onClick={handleStartGame} disabled={!canStart || isStartingGame} isLoading={isStartingGame}>
+                  {'\u25B8 START GAME'}
+                </Button>
+                <p className="text-center font-body text-[13px] text-ink-soft">
+                  {canStart
+                    ? `all humans ready \u00B7 ${String(room.players.length)}/${String(room.maxPlayers)} players \u00B7 host only`
+                    : room.players.length < room.minPlayers
+                      ? `need at least ${String(room.minPlayers)} players`
+                      : `waiting for humans \u00B7 ${String(humanReadyCount)}/${String(humanCount)} ready`}
+                </p>
+                <Button variant="secondary" size="sm" onClick={handleToggleReady}>
+                  {isReady ? 'unready' : 'ready'}
+                </Button>
+              </>
+            ) : (
+              <Button variant={isReady ? 'secondary' : 'green'} size="lg" onClick={handleToggleReady}>
+                {isReady ? 'not ready' : '\u2713 ready'}
+              </Button>
+            )}
+            <Button variant="ghost" size="sm" onClick={handleLeaveRoom}>
+              {'\u21E0 '}leave room
             </Button>
-            <Button
-              variant="primary"
-              onClick={handleStartGame}
-              disabled={!canStart || isStartingGame}
-            >
-              {isStartingGame ? 'Starting...' : 'Start Game'}
-            </Button>
-          </>
-        )}
-
-        <Button variant="danger" onClick={handleLeaveRoom}>
-          Leave Room
-        </Button>
-      </div>
-
-      {/* Add AI buttons */}
-      {canAddAI && (
-        <div className="flex flex-wrap items-center gap-3">
-          <span className="text-sm font-medium text-[var(--color-muted)]">Add AI:</span>
-          <Button variant="secondary" size="sm" onClick={() => handleAddAI('easy')}>
-            Easy
-          </Button>
-          <Button variant="secondary" size="sm" onClick={() => handleAddAI('medium')}>
-            Medium
-          </Button>
+          </div>
         </div>
-      )}
-
-      {/* Start game hint */}
-      {isHost && !canStart && (
-        <p className="text-sm text-[var(--color-muted)] text-center">
-          {room.players.length < room.minPlayers
-            ? `Need at least ${String(room.minPlayers)} players to start`
-            : 'All players must be ready to start'}
-        </p>
-      )}
+      </div>
     </div>
   );
 }

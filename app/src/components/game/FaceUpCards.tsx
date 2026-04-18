@@ -1,16 +1,14 @@
 /**
  * FaceUpCards — Displays a player's face-up table cards.
  *
- * Face-up cards are visible to all players and are played
- * after the hand is empty and the draw pile is exhausted.
- * Uses xs-size cards on mobile, sm on desktop.
+ * Face-up cards are visible to all players and are played after the hand
+ * and draw pile are exhausted.
  */
 'use client';
 
 import { useCallback } from 'react';
 
 import { Card } from '@/components/game/Card';
-import { useIsMobile } from '@/hooks/use-is-mobile';
 import { useViewportTier } from '@/hooks/use-viewport-tier';
 import { useUIStore } from '@/stores/ui-store';
 import type { Card as CardType } from '@/types/client';
@@ -26,7 +24,6 @@ export function FaceUpCards({
   isMyTurn,
   isActiveZone,
 }: FaceUpCardsProps): React.JSX.Element {
-  const isMobile = useIsMobile();
   const tier = useViewportTier();
   const selectedCardIds = useUIStore((s) => s.selectedCardIds);
   const selectCard = useUIStore((s) => s.selectCard);
@@ -49,43 +46,36 @@ export function FaceUpCards({
   if (cards.length === 0) {
     return (
       <div className="flex items-center justify-center py-1.5 sm:py-2">
-        <p className="text-xs font-medium text-[var(--color-muted)]">No face-up cards</p>
+        <p className="font-body text-xs text-ink-soft">No face-up cards</p>
       </div>
     );
   }
 
-  // mobile=xs, compact desktop=xs, full desktop=sm
   const cardSize = tier === 'full' ? 'sm' : 'xs';
+  const zoneRing = isActiveZone ? 'ring-2 ring-accent-2 ring-offset-2' : '';
 
   return (
     <div
-      className={`
-        flex flex-wrap items-center justify-center gap-1 py-1.5 px-2 sm:py-2.5 sm:px-3 rounded-xl
-        transition-all duration-200
-        ${isActiveZone
-          ? 'bg-brand-50/60 ring-2 ring-brand-400/40 dark:bg-brand-950/20 dark:ring-brand-700/40'
-          : ''}
-      `}
+      className={`flex flex-col items-center gap-1 rounded-md bg-paper/50 p-2 ${zoneRing}`}
       role="group"
       aria-label="Your face-up cards"
     >
-      {isActiveZone && (
-        <span className="w-full text-center text-[10px] sm:text-xs font-bold text-brand-600 dark:text-brand-400 mb-1">
-          <span className="sm:hidden">Face-up cards</span>
-          <span className="hidden sm:inline">Playing from face-up cards</span>
-        </span>
-      )}
-      {cards.map((card) => (
-        <Card
-          key={card.id}
-          card={card}
-          isSelected={selectedCardIds.includes(card.id)}
-          isPlayable={canInteract}
-          isDisabled={!canInteract}
-          size={cardSize}
-          onClick={handleCardClick}
-        />
-      ))}
+      <span className="zone-label">
+        face-up {isActiveZone ? '(active)' : '(locked while hand active)'}
+      </span>
+      <div className="flex flex-wrap items-center justify-center gap-1">
+        {cards.map((card) => (
+          <Card
+            key={card.id}
+            card={card}
+            isSelected={selectedCardIds.includes(card.id)}
+            isPlayable={canInteract}
+            isDisabled={!canInteract}
+            size={cardSize}
+            onClick={handleCardClick}
+          />
+        ))}
+      </div>
     </div>
   );
 }

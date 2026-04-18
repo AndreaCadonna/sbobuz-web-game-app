@@ -1,8 +1,8 @@
 /**
- * PlayerStats — Displays player statistics summary.
+ * PlayerStats — Sketchy stat cards.
  *
- * Shows rating, wins, losses, games played, and win rate
- * in a card grid layout.
+ * Grid of stat tiles, each a small `sk` box with a tiny mono label and a
+ * big Caveat number.
  */
 'use client';
 
@@ -26,8 +26,7 @@ export function PlayerStats(): React.JSX.Element {
       const parsed = myRatingResponseSchema.parse(raw);
       setStats(parsed.data.entry);
     } catch (err) {
-      const message =
-        err instanceof ApiError ? err.message : 'Failed to load stats';
+      const message = err instanceof ApiError ? err.message : 'Failed to load stats';
       setError(message);
       logger.warn({ err }, 'Failed to fetch player stats');
     } finally {
@@ -43,8 +42,8 @@ export function PlayerStats(): React.JSX.Element {
     return (
       <div className="flex items-center justify-center py-10">
         <div className="flex flex-col items-center gap-2">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand-200 border-t-brand-600" />
-          <span className="text-sm font-medium text-[var(--color-muted)]">Loading stats...</span>
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-paper-2 border-t-ink" />
+          <span className="font-body text-sm text-ink-soft">Loading stats...</span>
         </div>
       </div>
     );
@@ -52,8 +51,8 @@ export function PlayerStats(): React.JSX.Element {
 
   if (error) {
     return (
-      <div className="rounded-2xl bg-red-50 border border-red-200 p-6 text-center dark:bg-red-950/50 dark:border-red-800" role="alert">
-        <p className="text-sm font-medium text-red-600 dark:text-red-400">{error}</p>
+      <div className="sk sk-alt border-accent text-center" role="alert">
+        <p className="font-body text-sm font-semibold text-accent">{error}</p>
         <Button variant="secondary" size="sm" onClick={() => void fetchStats()} className="mt-2">
           Retry
         </Button>
@@ -63,32 +62,27 @@ export function PlayerStats(): React.JSX.Element {
 
   if (!stats) {
     return (
-      <div className="rounded-2xl border-2 border-[var(--color-border)] p-8 text-center">
-        <p className="font-medium text-[var(--color-muted)]">No stats available. Play some games!</p>
+      <div className="sk sk-dashed p-8 text-center">
+        <p className="font-body text-ink-soft">No stats available. Play some games!</p>
       </div>
     );
   }
 
-  const statItems = [
-    { label: 'Rank', value: `#${String(stats.rank)}`, color: '' },
-    { label: 'Rating', value: String(stats.rating), color: 'text-gold-600 dark:text-gold-400' },
-    { label: 'Wins', value: String(stats.gamesWon), color: 'text-brand-600 dark:text-brand-400' },
-    { label: 'Losses', value: String(stats.gamesPlayed - stats.gamesWon), color: 'text-red-500 dark:text-red-400' },
-    { label: 'Games', value: String(stats.gamesPlayed), color: '' },
-    { label: 'Win Rate', value: `${String(Math.round(stats.winRate * 100))}%`, color: '' },
+  const statItems: { label: string; value: string; color?: string }[] = [
+    { label: 'rank', value: `#${String(stats.rank)}` },
+    { label: 'rating', value: String(stats.rating), color: 'text-accent-y' },
+    { label: 'wins', value: String(stats.gamesWon), color: 'text-accent-2' },
+    { label: 'losses', value: String(stats.gamesPlayed - stats.gamesWon), color: 'text-accent' },
+    { label: 'games', value: String(stats.gamesPlayed) },
+    { label: 'win rate', value: `${String(Math.round(stats.winRate * 100))}%` },
   ];
 
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6" aria-label="Player statistics">
       {statItems.map((item) => (
-        <div
-          key={item.label}
-          className="rounded-2xl border-2 border-[var(--color-border)] bg-[var(--color-card-bg)] p-4 text-center transition-colors hover:border-gold-300/50"
-        >
-          <dt className="text-[10px] font-bold text-[var(--color-muted)] uppercase tracking-widest">
-            {item.label}
-          </dt>
-          <dd className={`mt-1.5 font-display text-2xl font-bold ${item.color}`}>
+        <div key={item.label} className="sk text-center">
+          <dt className="label-tiny">{item.label}</dt>
+          <dd className={`mt-1 font-display text-3xl font-bold ${item.color ?? 'text-ink'}`}>
             {item.value}
           </dd>
         </div>

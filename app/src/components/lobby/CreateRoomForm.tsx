@@ -1,5 +1,5 @@
 /**
- * CreateRoomForm — Form for creating a new game room.
+ * CreateRoomForm — Sketchy form for creating a new game room.
  */
 'use client';
 
@@ -67,20 +67,20 @@ export function CreateRoomForm(): React.JSX.Element {
   );
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5" noValidate>
+    <form onSubmit={handleSubmit} className="space-y-4" noValidate>
       <Input
-        label="Room Name"
+        label="name"
         name="name"
         type="text"
         value={formData.name}
         onChange={handleChange}
         error={fieldErrors.name}
-        placeholder="Give your room a name"
+        placeholder="Friday night showdown"
       />
 
       <div className="grid grid-cols-2 gap-4">
         <Input
-          label="Max Players"
+          label="max players"
           name="maxPlayers"
           type="number"
           min={2}
@@ -91,7 +91,7 @@ export function CreateRoomForm(): React.JSX.Element {
         />
 
         <Input
-          label="Turn Timer (seconds)"
+          label="turn timer (30–120s)"
           name="turnTimerSeconds"
           type="number"
           min={15}
@@ -102,47 +102,47 @@ export function CreateRoomForm(): React.JSX.Element {
         />
       </div>
 
-      <div className="flex items-center gap-6 rounded-xl bg-[var(--color-background)] p-3">
-        <label className="flex items-center gap-2.5 text-sm font-medium cursor-pointer">
-          <input
-            type="checkbox"
-            name="isPrivate"
-            checked={formData.isPrivate}
-            onChange={handleChange}
-            className="h-4 w-4 rounded border-[var(--color-border)] accent-brand-600"
-          />
-          Private Room
-        </label>
-
-        <label className="flex items-center gap-2.5 text-sm font-medium cursor-pointer">
+      <div className="flex flex-wrap items-center gap-4 font-body text-[15px]">
+        <label className="flex cursor-pointer items-center gap-2">
           <input
             type="checkbox"
             name="allowAI"
             checked={formData.allowAI}
             onChange={handleChange}
-            className="h-4 w-4 rounded border-[var(--color-border)] accent-brand-600"
+            className="h-4 w-4 border-2 border-ink accent-ink"
           />
-          Allow AI Players
+          allow AI opponents
+        </label>
+
+        <label className="flex cursor-pointer items-center gap-2">
+          <input
+            type="checkbox"
+            name="isPrivate"
+            checked={formData.isPrivate}
+            onChange={handleChange}
+            className="h-4 w-4 border-2 border-ink accent-ink"
+          />
+          private (invite only)
         </label>
       </div>
 
       {error && (
-        <div className="rounded-xl bg-red-50 border border-red-200 p-3 text-sm font-medium text-red-700 dark:bg-red-950/50 dark:border-red-800 dark:text-red-300" role="alert">
+        <div className="sk sk-alt !py-2 !px-3 text-sm font-semibold text-accent" role="alert">
           {error}
         </div>
       )}
 
-      <div className="flex gap-3 pt-2">
-        <Button type="submit" fullWidth isLoading={isCreatingRoom} size="lg">
-          Create Room
+      <div className="flex flex-wrap gap-2 pt-1">
+        <Button type="submit" variant="accent" size="md" isLoading={isCreatingRoom}>
+          Create {'\u25B8'}
         </Button>
         <Button
           type="button"
-          variant="secondary"
-          size="lg"
+          variant="ghost"
+          size="md"
           onClick={() => router.back()}
         >
-          Cancel
+          cancel
         </Button>
       </div>
     </form>

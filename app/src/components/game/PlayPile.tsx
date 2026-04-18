@@ -1,10 +1,8 @@
 /**
- * PlayPile — Displays the discard/play pile.
+ * PlayPile — Sketchy play pile.
  *
- * Shows the top card of the pile with a count badge.
- * Displays a fan effect of the top few cards.
- * Acts as a drop target for drag-and-drop card play.
- * Supports tap-to-play: tapping the pile plays selected cards (for mobile).
+ * Matches wireframe `.pile-stack`: three top cards fanned with rotations and
+ * opacity for depth. Accepts drops (drag-and-drop) and taps (mobile).
  */
 'use client';
 
@@ -23,8 +21,8 @@ interface PlayPileProps {
 }
 
 const CONTAINER_SIZES = {
-  sm: 'h-[4.5rem] w-12',
-  md: 'h-24 w-16',
+  sm: 'h-[3.875rem] w-11',
+  md: 'h-[5.5rem] w-[3.875rem]',
 } as const;
 
 export function PlayPile({
@@ -55,31 +53,25 @@ export function PlayPile({
     [isDropTarget],
   );
 
-  const handleDragLeave = useCallback(
-    (e: React.DragEvent) => {
-      // Only set false when leaving the container (not entering a child)
-      if (e.currentTarget.contains(e.relatedTarget as Node)) return;
-      setIsDragOver(false);
-    },
-    [],
-  );
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+    setIsDragOver(false);
+  }, []);
 
   const handleDrop = useCallback(
     (e: React.DragEvent) => {
       e.preventDefault();
       setIsDragOver(false);
       if (!isDropTarget || !onDropCards) return;
-
       const data = e.dataTransfer.getData('application/json');
       if (!data) return;
-
       try {
         const cardIds = JSON.parse(data) as string[];
         if (Array.isArray(cardIds) && cardIds.length > 0) {
           onDropCards(cardIds);
         }
       } catch {
-        // Invalid data, ignore
+        /* invalid data, ignore */
       }
     },
     [isDropTarget, onDropCards],
@@ -91,11 +83,8 @@ export function PlayPile({
     }
   }, [isDropTarget, onDropCards, selectedCardIds]);
 
-  const dropTargetClasses = isDragOver
-    ? 'ring-2 ring-gold-400 scale-105 motion-reduce:scale-100'
-    : '';
-
   const canTapToPlay = isDropTarget && selectedCardIds.length > 0;
+  const dropRing = isDragOver ? 'ring-2 ring-accent-3 ring-offset-2' : '';
 
   if (pile.length === 0) {
     return (
@@ -103,21 +92,20 @@ export function PlayPile({
         type="button"
         onClick={canTapToPlay ? handleTapToPlay : undefined}
         disabled={!canTapToPlay}
-        className={`flex ${containerClass} items-center justify-center rounded-xl border-2 border-dashed border-[var(--color-border)]/50 transition-all duration-150 motion-reduce:transition-none ${dropTargetClasses} ${canTapToPlay ? 'cursor-pointer ring-2 ring-gold-400/60 hover:ring-gold-400' : 'cursor-default'}`}
+        className={`flex ${containerClass} items-center justify-center rounded-md border-2 border-dashed border-line-soft transition-transform motion-reduce:transition-none ${dropRing} ${canTapToPlay ? 'cursor-pointer ring-2 ring-accent-3/60 hover:ring-accent-3' : 'cursor-default'}`}
         aria-label={`Play pile (empty)${canTapToPlay ? '. Tap to play selected cards' : ''}`}
         onDragOver={handleDragOver}
         onDragEnter={handleDragEnter}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
       >
-        <span className="text-xs font-medium text-[var(--color-muted)]/50">
-          {isDragOver ? 'Drop here' : canTapToPlay ? 'Tap to play' : 'Empty'}
+        <span className="font-mono text-[10px] uppercase tracking-wider text-line-soft">
+          {isDragOver ? 'drop' : canTapToPlay ? 'tap to play' : 'empty'}
         </span>
       </button>
     );
   }
 
-  // Show the top 3 cards with a slight offset for fan effect
   const visibleCards = pile.slice(-3);
   const totalCount = pile.length;
 
@@ -126,7 +114,7 @@ export function PlayPile({
       type="button"
       onClick={canTapToPlay ? handleTapToPlay : undefined}
       disabled={!canTapToPlay}
-      className={`relative transition-all duration-150 motion-reduce:transition-none ${dropTargetClasses} ${canTapToPlay ? 'cursor-pointer ring-2 ring-gold-400/60 rounded-xl hover:ring-gold-400' : 'cursor-default'}`}
+      className={`relative rounded-md transition-transform motion-reduce:transition-none ${dropRing} ${canTapToPlay ? 'cursor-pointer ring-2 ring-accent-3/60 hover:ring-accent-3' : 'cursor-default'}`}
       aria-label={`Play pile, ${String(totalCount)} cards${isDropTarget ? '. Drop cards here to play' : ''}${canTapToPlay ? '. Tap to play selected cards' : ''}`}
       onDragOver={handleDragOver}
       onDragEnter={handleDragEnter}
@@ -135,15 +123,24 @@ export function PlayPile({
     >
       <div className={`relative ${containerClass}`}>
         {visibleCards.map((card, index) => {
-          const offset = (index - (visibleCards.length - 1)) * (size === 'sm' ? 1.5 : 2);
-          const rotation = (index - (visibleCards.length - 1)) * (size === 'sm' ? 2 : 3);
-
+          // Matches wireframe rotations: -3deg then 2deg then -1deg
+          const rotations = [-3, 2, -1];
+          const translates = [
+            { x: -3, y: 2 },
+            { x: 2, y: -1 },
+            { x: 0, y: 0 },
+          ];
+          const offsetIdx = index + (3 - visibleCards.length);
+          const rot = rotations[offsetIdx] ?? 0;
+          const trans = translates[offsetIdx] ?? { x: 0, y: 0 };
+          const opacity = [0.5, 0.7, 1][offsetIdx] ?? 1;
           return (
             <div
               key={card.id}
-              className="absolute inset-0 transition-transform duration-200 motion-reduce:transition-none"
+              className="absolute inset-0"
               style={{
-                transform: `translateX(${String(offset)}px) rotate(${String(rotation)}deg)`,
+                transform: `translate(${String(trans.x)}px, ${String(trans.y)}px) rotate(${String(rot)}deg)`,
+                opacity,
                 zIndex: index,
               }}
             >
@@ -152,13 +149,6 @@ export function PlayPile({
           );
         })}
       </div>
-
-      {/* Card count badge */}
-      {totalCount > 1 && (
-        <div className={`absolute -top-2 -right-2 flex ${size === 'sm' ? 'h-5 w-5 text-[8px]' : 'h-6 w-6 text-[10px]'} items-center justify-center rounded-full bg-gold-600 font-bold text-white ring-2 ring-[var(--color-background)] z-10`}>
-          {String(totalCount)}
-        </div>
-      )}
     </button>
   );
 }

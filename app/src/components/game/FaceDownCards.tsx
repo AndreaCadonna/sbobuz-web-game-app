@@ -1,16 +1,14 @@
 /**
  * FaceDownCards — Displays a player's face-down table cards.
  *
- * Face-down cards are blind-played: the player selects a position (index)
- * without knowing what the card is. Only used when hand and face-up are empty.
- * Uses xs-size cards on mobile, sm on desktop.
+ * Sketchy card backs with an active-zone ring (blue-ish highlight when
+ * it's the player's turn to play from face-down).
  */
 'use client';
 
 import { useCallback } from 'react';
 
 import { CardBack } from '@/components/game/Card';
-import { useIsMobile } from '@/hooks/use-is-mobile';
 import { useViewportTier } from '@/hooks/use-viewport-tier';
 
 interface FaceDownCardsProps {
@@ -26,7 +24,6 @@ export function FaceDownCards({
   isActiveZone,
   onPlayBlind,
 }: FaceDownCardsProps): React.JSX.Element {
-  const isMobile = useIsMobile();
   const tier = useViewportTier();
   const canInteract = isMyTurn && isActiveZone;
 
@@ -42,50 +39,43 @@ export function FaceDownCards({
   if (count === 0) {
     return (
       <div className="flex items-center justify-center py-1.5 sm:py-2">
-        <p className="text-xs font-medium text-[var(--color-muted)]">No face-down cards</p>
+        <p className="font-body text-xs text-ink-soft">No face-down cards</p>
       </div>
     );
   }
 
-  // mobile=xs, compact desktop=xs, full desktop=sm
   const cardSize = tier === 'full' ? 'sm' : 'xs';
+  const zoneRing = isActiveZone
+    ? 'ring-2 ring-accent-3 ring-offset-2'
+    : '';
 
   return (
     <div
-      className={`
-        flex flex-wrap items-center justify-center gap-1 py-1.5 px-2 sm:py-2.5 sm:px-3 rounded-xl
-        transition-all duration-200
-        ${isActiveZone
-          ? 'bg-gold-50/60 ring-2 ring-gold-400/40 dark:bg-gold-950/20 dark:ring-gold-700/40'
-          : ''}
-      `}
+      className={`flex flex-col items-center gap-1 rounded-md bg-paper/50 p-2 ${zoneRing}`}
       role="group"
       aria-label="Your face-down cards"
     >
-      {isActiveZone && (
-        <span className="w-full text-center text-[10px] sm:text-xs font-bold text-gold-600 dark:text-gold-400 mb-1">
-          <span className="sm:hidden">Blind play</span>
-          <span className="hidden sm:inline">Blind play: pick a card</span>
-        </span>
-      )}
-      {Array.from({ length: count }, (_, index) => (
-        <button
-          key={`facedown-${String(index)}`}
-          type="button"
-          onClick={() => handleClick(index)}
-          disabled={!canInteract}
-          aria-label={`Play face-down card at position ${String(index + 1)}`}
-          className={`
-            transition-all duration-200 motion-reduce:transition-none rounded-xl
-            ${canInteract
-              ? 'cursor-pointer hover:-translate-y-1 motion-reduce:hover:translate-y-0 hover:ring-2 hover:ring-gold-400 hover:shadow-card-hover'
-              : 'cursor-default'}
-            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-400 focus-visible:ring-offset-2
-          `}
-        >
-          <CardBack size={cardSize} />
-        </button>
-      ))}
+      <span className="zone-label">
+        face-down {isActiveZone ? '(blind play)' : '(locked)'}
+      </span>
+      <div className="flex flex-wrap items-center justify-center gap-1">
+        {Array.from({ length: count }, (_, index) => (
+          <button
+            key={`facedown-${String(index)}`}
+            type="button"
+            onClick={() => handleClick(index)}
+            disabled={!canInteract}
+            aria-label={`Play face-down card at position ${String(index + 1)}`}
+            className={`
+              rounded-md transition-transform duration-150 motion-reduce:transition-none
+              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-3 focus-visible:ring-offset-2
+              ${canInteract ? 'cursor-pointer hover:-translate-y-1' : 'cursor-default'}
+            `}
+          >
+            <CardBack size={cardSize} />
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

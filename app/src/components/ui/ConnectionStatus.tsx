@@ -1,5 +1,8 @@
 /**
  * ConnectionStatus — Visual indicator for WebSocket connection state.
+ *
+ * Hand-drawn dot + mono label. Green = connected, orange = disconnected,
+ * yellow = reconnecting.
  */
 'use client';
 
@@ -12,20 +15,17 @@ export function ConnectionStatus(): React.JSX.Element {
 
   const statusConfig = {
     connected: {
-      color: 'bg-brand-400',
-      ring: 'ring-brand-400/30',
+      dotClass: 'bg-accent-2',
       label: 'Connected',
       detail: latencyMs !== null ? `${String(latencyMs)}ms` : undefined,
     },
     reconnecting: {
-      color: 'bg-gold-400 animate-pulse',
-      ring: 'ring-gold-400/30',
+      dotClass: 'bg-accent-y animate-pulse motion-reduce:animate-none',
       label: 'Reconnecting',
       detail: `Attempt ${String(reconnectAttempt)}`,
     },
     disconnected: {
-      color: 'bg-red-400',
-      ring: 'ring-red-400/30',
+      dotClass: 'bg-accent',
       label: 'Disconnected',
       detail: undefined,
     },
@@ -34,14 +34,17 @@ export function ConnectionStatus(): React.JSX.Element {
   const config = statusConfig[status];
 
   return (
-    <div className="flex items-center gap-2" aria-label={`Connection status: ${config.label}`}>
+    <div
+      className="flex items-center gap-1.5 font-mono text-[11px] text-ink-soft"
+      aria-label={`Connection status: ${config.label}`}
+    >
       <span
-        className={`inline-block h-2.5 w-2.5 rounded-full ring-2 ${config.color} ${config.ring}`}
+        className={`inline-block h-2.5 w-2.5 rounded-full border-[1.5px] border-ink ${config.dotClass}`}
         aria-hidden="true"
       />
-      <span className="text-xs font-medium text-[var(--color-muted)]">
+      <span>
         {config.label}
-        {config.detail ? ` (${config.detail})` : ''}
+        {config.detail ? ` \u00B7 ${config.detail}` : ''}
       </span>
     </div>
   );

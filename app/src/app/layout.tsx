@@ -14,9 +14,11 @@ export default function RootLayout({
 }): React.JSX.Element {
   return (
     <html lang="en">
-      <body className="min-h-screen bg-[var(--color-background)] text-[var(--color-foreground)] antialiased">
-        {children}
-      </body>
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+      </head>
+      <body className="min-h-screen font-body text-ink antialiased">{children}</body>
     </html>
   );
 }

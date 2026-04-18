@@ -8,11 +8,9 @@ function SectionCard({
   children: React.ReactNode;
 }): React.JSX.Element {
   return (
-    <section className="rounded-2xl border-2 border-[var(--color-border)] bg-[var(--color-card-bg)] p-6 sm:p-8">
-      <h2 className="font-display mb-4 text-2xl font-bold text-brand-800 dark:text-brand-300">
-        {title}
-      </h2>
-      {children}
+    <section className="sk p-6">
+      <h2 className="mb-3 font-display text-3xl font-bold">{title}</h2>
+      <div className="font-body text-[15px] text-ink-soft">{children}</div>
     </section>
   );
 }
@@ -30,12 +28,12 @@ function SpecialCardRow({
 }): React.JSX.Element {
   return (
     <div className="flex items-start gap-4">
-      <div className={`flex h-12 w-9 flex-shrink-0 items-center justify-center rounded-lg border-2 border-[var(--color-border)] bg-white text-lg font-bold ${color} dark:bg-gray-900`}>
+      <div className={`flex h-[5.5rem] w-[3.875rem] flex-shrink-0 items-center justify-center rounded-[7px] border-2 border-ink bg-paper font-display text-2xl font-bold shadow-[2px_2px_0_rgba(0,0,0,0.15)] ${color}`}>
         {symbol}
       </div>
       <div>
-        <p className="font-semibold">{name}</p>
-        <p className="text-sm text-[var(--color-muted)]">{description}</p>
+        <p className="font-body font-semibold text-ink">{name}</p>
+        <p className="font-body text-sm text-ink-soft">{description}</p>
       </div>
     </div>
   );
@@ -43,195 +41,171 @@ function SpecialCardRow({
 
 export default function HowToPlayPage(): React.JSX.Element {
   return (
-    <main className="min-h-screen px-4 py-12 sm:px-6">
-      {/* Decorative background */}
-      <div className="fixed inset-0 -z-10 bg-gradient-to-b from-brand-50/40 via-transparent to-gold-50/30 dark:from-brand-950/30 dark:via-transparent dark:to-gold-950/20" aria-hidden="true" />
-
+    <main className="min-h-screen px-4 py-10 sm:px-6">
       <div className="mx-auto max-w-3xl">
-        {/* Header */}
-        <div className="mb-10 text-center">
-          <div className="mb-4 flex items-center justify-center gap-3 text-2xl text-[var(--color-muted)]/40" aria-hidden="true">
-            <span className="text-red-400/50">{'\u2665'}</span>
-            <span className="text-[var(--color-muted)]/30">{'\u2660'}</span>
-            <span className="text-red-400/50">{'\u2666'}</span>
-            <span className="text-[var(--color-muted)]/30">{'\u2663'}</span>
-          </div>
-          <h1 className="font-display mb-3 text-4xl font-bold tracking-tight sm:text-5xl text-brand-800 dark:text-brand-300">
-            How to Play
-          </h1>
-          <p className="text-lg text-[var(--color-muted)]">
-            Learn the rules of Sbobuz in a few minutes
-          </p>
+        <div className="mb-8 text-center">
+          <h1 className="font-display text-5xl font-bold tracking-tight sm:text-6xl">How to play</h1>
+          <p className="mt-1 font-body text-lg text-ink-soft">Learn the rules of Sbobuz in a few minutes</p>
         </div>
 
-        <div className="space-y-6">
-          {/* Overview */}
+        <div className="space-y-5">
           <SectionCard title="Overview">
-            <p className="text-[var(--color-muted)] leading-relaxed">
-              Sbobuz is a turn-based card game for <strong>2 to 5 players</strong> using a standard
-              54-card deck (52 cards + 2 jokers). The goal is simple: <strong>be the first player to
-              get rid of all your cards</strong>. Play cards from your hand, then your face-up cards,
-              then your face-down cards. Empty all three zones and you win!
+            <p>
+              Sbobuz is a turn-based card game for <strong className="text-ink">2&ndash;5 players</strong>{' '}
+              using a standard 54-card deck (52 cards + 2 jokers). The goal is simple:{' '}
+              <strong className="text-ink">be the first player to get rid of all your cards</strong>. Play
+              cards from your hand, then your face-up cards, then your face-down cards. Empty all three zones
+              and you win!
             </p>
           </SectionCard>
 
-          {/* Setup */}
           <SectionCard title="Setup">
-            <p className="mb-4 text-[var(--color-muted)] leading-relaxed">
-              Each player receives <strong>9 cards</strong> dealt in three zones:
+            <p>
+              Each player receives <strong className="text-ink">9 cards</strong> dealt in three zones:
             </p>
-            <div className="grid gap-3 sm:grid-cols-3">
-              <div className="rounded-xl border-2 border-[var(--color-border)] bg-[var(--color-background)] p-4 text-center">
-                <p className="text-2xl mb-1">&#x1F0CF;</p>
-                <p className="font-semibold text-sm">3 Face-Down</p>
-                <p className="text-xs text-[var(--color-muted)]">Hidden from everyone</p>
+            <div className="mt-3 grid gap-3 sm:grid-cols-3">
+              <div className="sk sk-alt text-center">
+                <p className="font-display text-3xl">3</p>
+                <p className="mt-1 font-body text-sm font-semibold text-ink">Face-Down</p>
+                <p className="text-xs text-ink-soft">Hidden from everyone</p>
               </div>
-              <div className="rounded-xl border-2 border-[var(--color-border)] bg-[var(--color-background)] p-4 text-center">
-                <p className="text-2xl mb-1">&#x1F0A1;</p>
-                <p className="font-semibold text-sm">3 Face-Up</p>
-                <p className="text-xs text-[var(--color-muted)]">Visible to all</p>
+              <div className="sk sk-alt text-center">
+                <p className="font-display text-3xl">3</p>
+                <p className="mt-1 font-body text-sm font-semibold text-ink">Face-Up</p>
+                <p className="text-xs text-ink-soft">Visible to all</p>
               </div>
-              <div className="rounded-xl border-2 border-[var(--color-border)] bg-[var(--color-background)] p-4 text-center">
-                <p className="text-2xl mb-1">&#x1F0B1;</p>
-                <p className="font-semibold text-sm">3 in Hand</p>
-                <p className="text-xs text-[var(--color-muted)]">Only you can see</p>
+              <div className="sk sk-alt text-center">
+                <p className="font-display text-3xl">3</p>
+                <p className="mt-1 font-body text-sm font-semibold text-ink">In Hand</p>
+                <p className="text-xs text-ink-soft">Only you can see</p>
               </div>
             </div>
-            <p className="mt-4 text-sm text-[var(--color-muted)]">
-              Remaining cards form the <strong>draw pile</strong> in the center. The player with the
-              lowest hand cards goes first.
+            <p className="mt-4 text-sm">
+              Remaining cards form the <strong className="text-ink">draw pile</strong> in the center. The
+              player with the lowest hand cards goes first.
             </p>
           </SectionCard>
 
-          {/* Gameplay */}
-          <SectionCard title="On Your Turn">
-            <p className="mb-4 text-[var(--color-muted)] leading-relaxed">
-              Each turn you must do <strong>one</strong> of the following:
+          <SectionCard title="On your turn">
+            <p className="mb-3">
+              Each turn you must do <strong className="text-ink">one</strong> of the following:
             </p>
-            <div className="space-y-3">
+            <div className="space-y-2">
               <div className="flex items-start gap-3">
-                <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-brand-100 text-sm font-bold text-brand-700 dark:bg-brand-900 dark:text-brand-300">1</span>
-                <p className="text-[var(--color-muted)]">
-                  <strong>Play card(s)</strong> of the same rank that are equal to or higher than the
-                  top card on the pile.
+                <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full border-2 border-ink bg-accent font-display text-base font-bold text-white">1</span>
+                <p>
+                  <strong className="text-ink">Play card(s)</strong> of the same rank that are equal to or
+                  higher than the top card on the pile.
                 </p>
               </div>
               <div className="flex items-start gap-3">
-                <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-brand-100 text-sm font-bold text-brand-700 dark:bg-brand-900 dark:text-brand-300">2</span>
-                <p className="text-[var(--color-muted)]">
-                  <strong>Pick up the pile</strong> into your hand. You can always pick up, even if
-                  you have a legal play.
+                <span className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full border-2 border-ink bg-accent font-display text-base font-bold text-white">2</span>
+                <p>
+                  <strong className="text-ink">Pick up the pile</strong> into your hand. You can always pick
+                  up, even if you have a legal play.
                 </p>
               </div>
             </div>
-            <p className="mt-4 text-sm text-[var(--color-muted)]">
-              After playing, if your hand has fewer than 3 cards and the draw pile is not empty,
-              you draw back up to 3.
+            <p className="mt-4 text-sm">
+              After playing, if your hand has fewer than 3 cards and the draw pile is not empty, you draw
+              back up to 3.
             </p>
           </SectionCard>
 
-          {/* Card Zones */}
-          <SectionCard title="Card Zones">
-            <p className="mb-4 text-[var(--color-muted)] leading-relaxed">
-              You play through your cards in strict order:
-            </p>
-            <div className="flex items-center justify-center gap-2 text-sm font-medium">
-              <span className="rounded-lg bg-brand-100 px-3 py-1.5 text-brand-700 dark:bg-brand-900 dark:text-brand-300">Hand</span>
-              <span className="text-[var(--color-muted)]">&rarr;</span>
-              <span className="rounded-lg bg-gold-100 px-3 py-1.5 text-gold-800 dark:bg-gold-900 dark:text-gold-200">Face-Up</span>
-              <span className="text-[var(--color-muted)]">&rarr;</span>
-              <span className="rounded-lg bg-red-100 px-3 py-1.5 text-red-700 dark:bg-red-900 dark:text-red-300">Face-Down</span>
-              <span className="text-[var(--color-muted)]">&rarr;</span>
-              <span className="rounded-lg bg-green-100 px-3 py-1.5 text-green-700 dark:bg-green-900 dark:text-green-300">Win!</span>
+          <SectionCard title="Card zones">
+            <p className="mb-3">You play through your cards in strict order:</p>
+            <div className="flex flex-wrap items-center justify-center gap-2 font-body text-sm">
+              <span className="pill">Hand</span>
+              <span className="text-accent">{'\u2192'}</span>
+              <span className="pill yellow">Face-Up</span>
+              <span className="text-accent">{'\u2192'}</span>
+              <span className="pill accent">Face-Down</span>
+              <span className="text-accent">{'\u2192'}</span>
+              <span className="pill green">Win!</span>
             </div>
-            <p className="mt-4 text-sm text-[var(--color-muted)]">
-              <strong>Face-down cards</strong> are played blind &mdash; pick a position without
-              seeing the card. If it&apos;s not a legal play, the card goes on the pile and you pick
-              up everything. You&apos;re back to playing from your hand!
+            <p className="mt-4 text-sm">
+              <strong className="text-ink">Face-down cards</strong> are played blind &mdash; pick a position
+              without seeing the card. If it&rsquo;s not a legal play, the card goes on the pile and you
+              pick up everything. You&rsquo;re back to playing from your hand!
             </p>
           </SectionCard>
 
-          {/* Special Cards */}
-          <SectionCard title="Special Cards">
-            <p className="mb-5 text-[var(--color-muted)] leading-relaxed">
-              Four card types have special abilities that break the normal rules:
-            </p>
+          <SectionCard title="Special cards">
+            <p className="mb-4">Four card types have special abilities that break the normal rules:</p>
             <div className="space-y-5">
               <SpecialCardRow
-                name="2 &mdash; Wild Reset"
+                name="2 — Wild Reset"
                 symbol="2"
-                color="text-blue-600"
+                color="text-accent-3"
                 description="Can be played on any card. The next player can play anything (free play)."
               />
               <SpecialCardRow
-                name="Queen &mdash; Direction Override"
+                name="Queen — Direction Override"
                 symbol="Q"
-                color="text-purple-600"
+                color="text-accent-3"
                 description="After playing, declare whether the next card must be higher or lower. Normal comparison rules apply to the Queen itself."
               />
               <SpecialCardRow
-                name="King &mdash; Pile Clear"
+                name="King — Pile Clear"
                 symbol="K"
-                color="text-gold-600"
+                color="text-accent-y"
                 description="Clears (burns) the entire pile. You must play another card immediately. Kings can chain!"
               />
               <SpecialCardRow
-                name="Joker &mdash; Wild + Reverse"
-                symbol="&#x2605;"
-                color="text-red-500"
+                name="Joker — Wild + Reverse"
+                symbol={'\u2605'}
+                color="text-accent"
                 description="Can be played on any card (free play for the next player). Also reverses the turn order."
               />
             </div>
-            <p className="mt-5 text-sm text-[var(--color-muted)]">
+            <p className="mt-5 text-sm">
               Rank order from lowest to highest:{' '}
-              <span className="font-mono text-xs">3 4 5 6 7 8 9 10 J Q K A</span>.
-              The 2 is special &mdash; it&apos;s the lowest rank but can always be played.
+              <span className="font-mono text-xs">3 4 5 6 7 8 9 10 J Q K A</span>. The 2 is special &mdash;
+              it&rsquo;s the lowest rank but can always be played.
             </p>
           </SectionCard>
 
-          {/* Sbobuz */}
           <SectionCard title="Sbobuz!">
-            <div className="mb-4 flex items-center gap-3">
+            <div className="mb-3 flex items-center gap-3">
               <div className="flex gap-1" aria-hidden="true">
-                <span className="flex h-10 w-7 items-center justify-center rounded border-2 border-gold-400 bg-gold-50 text-sm font-bold text-gold-700 dark:bg-gold-950 dark:text-gold-300">7</span>
-                <span className="flex h-10 w-7 items-center justify-center rounded border-2 border-gold-400 bg-gold-50 text-sm font-bold text-gold-700 dark:bg-gold-950 dark:text-gold-300">7</span>
-                <span className="flex h-10 w-7 items-center justify-center rounded border-2 border-gold-400 bg-gold-50 text-sm font-bold text-gold-700 dark:bg-gold-950 dark:text-gold-300">7</span>
-                <span className="flex h-10 w-7 items-center justify-center rounded border-2 border-gold-400 bg-gold-50 text-sm font-bold text-gold-700 dark:bg-gold-950 dark:text-gold-300">7</span>
+                {[0, 1, 2, 3].map((i) => (
+                  <span
+                    key={i}
+                    className="flex h-10 w-7 items-center justify-center rounded border-2 border-ink bg-paper font-display text-lg font-bold"
+                  >
+                    7
+                  </span>
+                ))}
               </div>
-              <span className="font-display text-xl font-bold text-gold-600">=  Sbobuz!</span>
+              <span className="font-display text-2xl font-bold text-accent">= Sbobuz!</span>
             </div>
-            <p className="text-[var(--color-muted)] leading-relaxed">
-              When the <strong>top 4 cards</strong> on the pile share the same rank &mdash; that&apos;s a
-              Sbobuz! The entire pile is burned, the turn direction reverses, and the player who
-              completed it gets to play again.
+            <p>
+              When the <strong className="text-ink">top 4 cards</strong> on the pile share the same rank
+              &mdash; that&rsquo;s a Sbobuz! The entire pile is burned, the turn direction reverses, and
+              the player who completed it gets to play again.
             </p>
-            <p className="mt-3 text-sm text-[var(--color-muted)]">
-              Sbobuz <strong>overrides all other card effects</strong>. Four Queens? Sbobuz, not a
-              Queen effect. It can build across multiple turns &mdash; one player plays a 7, then
-              another plays a 7, and so on. Jokers cannot contribute to a Sbobuz (they have no rank).
+            <p className="mt-3 text-sm">
+              Sbobuz <strong className="text-ink">overrides all other card effects</strong>. Four Queens?
+              Sbobuz, not a Queen effect. It can build across multiple turns &mdash; one player plays a 7,
+              then another plays a 7, and so on. Jokers cannot contribute to a Sbobuz (they have no rank).
             </p>
           </SectionCard>
 
-          {/* Winning */}
           <SectionCard title="Winning">
-            <p className="text-[var(--color-muted)] leading-relaxed">
-              The first player to <strong>empty all three card zones</strong> (hand, face-up, and
-              face-down) wins the game. Plan carefully &mdash; getting stuck picking up a big pile
-              when you&apos;re down to your last face-down cards can cost you the game!
+            <p>
+              The first player to <strong className="text-ink">empty all three card zones</strong> (hand,
+              face-up, and face-down) wins the game. Plan carefully &mdash; getting stuck picking up a big
+              pile when you&rsquo;re down to your last face-down cards can cost you the game!
             </p>
           </SectionCard>
         </div>
 
-        {/* Back link */}
         <div className="mt-10 text-center">
           <Link
             href="/"
-            className="inline-flex items-center gap-2 text-sm font-medium text-[var(--color-muted)] hover:text-brand-600 dark:hover:text-brand-400 transition-colors"
+            className="inline-flex items-center gap-2 font-display text-lg text-ink underline underline-offset-2 hover:text-accent"
           >
-            <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
-            Back to home
+            {'\u2190 '}back to home
           </Link>
         </div>
       </div>

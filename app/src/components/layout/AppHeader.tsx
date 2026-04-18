@@ -1,7 +1,10 @@
 /**
- * AppHeader — Top navigation bar with nav links, user info, and connection status.
+ * AppHeader — Sketchy topbar.
  *
- * Desktop: horizontal nav links. Mobile: hamburger menu.
+ * Paper bg, 2px ink bottom border, sticky. Logo = "Sbobuz" in Caveat 34px
+ * with a small rotated orange circle before it. Nav links are nav-tab style
+ * (paper-2 bg, 2px ink border, slight rotation). On mobile collapses into a
+ * hamburger menu.
  */
 'use client';
 
@@ -18,6 +21,27 @@ const ALL_NAV_LINKS = [
   { href: '/profile', label: 'Profile', guestVisible: false },
   { href: '/how-to-play', label: 'How to Play', guestVisible: true },
 ] as const;
+
+// ── Logo ────────────────────────────────────────────────────────
+
+function Logo({ onClick }: { onClick?: () => void }): React.JSX.Element {
+  return (
+    <Link
+      href="/lobby"
+      className="flex items-center gap-2 font-display text-[34px] font-bold leading-none text-ink"
+      onClick={onClick}
+    >
+      <span
+        className="inline-block h-[18px] w-[18px] rounded-full border-2 border-ink bg-accent"
+        style={{ transform: 'translateY(3px) rotate(-4deg)' }}
+        aria-hidden="true"
+      />
+      <span>Sbobuz</span>
+    </Link>
+  );
+}
+
+// ── Component ───────────────────────────────────────────────────
 
 export function AppHeader(): React.JSX.Element {
   const { user, isGuest, logout } = useAuth();
@@ -42,69 +66,65 @@ export function AppHeader(): React.JSX.Element {
   }, []);
 
   return (
-    <header className="border-b-2 border-[var(--color-border)] bg-[var(--color-background)]/95 backdrop-blur-sm sticky top-0 z-40">
-      <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6">
-        {/* Left: logo and desktop nav */}
-        <div className="flex items-center gap-8">
-          <Link href="/lobby" className="font-display text-xl font-bold tracking-tight text-brand-700 dark:text-brand-400" onClick={closeMobileMenu}>
-            Sbobuz
-          </Link>
-          <nav className="hidden items-center gap-1 sm:flex" aria-label="Main navigation">
-            {navLinks.map((link) => {
-              const isActive = pathname.startsWith(link.href);
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className={`
-                    rounded-lg px-3 py-1.5 text-sm font-medium transition-all duration-200
-                    ${isActive
-                      ? 'bg-brand-50 text-brand-700 dark:bg-brand-950/40 dark:text-brand-300'
-                      : 'text-[var(--color-muted)] hover:bg-[var(--color-card-bg)] hover:text-[var(--color-foreground)]'}
-                  `}
-                  aria-current={isActive ? 'page' : undefined}
-                >
-                  {link.label}
-                </Link>
-              );
-            })}
-          </nav>
-        </div>
+    <header className="sticky top-0 z-40 border-b-2 border-ink bg-paper">
+      <div className="mx-auto flex max-w-7xl items-center gap-5 px-4 py-3 sm:px-7 sm:py-3.5">
+        {/* Left: logo */}
+        <Logo onClick={closeMobileMenu} />
 
-        {/* Right: connection status, user info, mobile menu button */}
-        <div className="flex items-center gap-4">
+        {/* Desktop nav */}
+        <nav className="ml-4 hidden flex-wrap items-center gap-2 sm:flex" aria-label="Main navigation">
+          {navLinks.map((link, i) => {
+            const isActive = pathname.startsWith(link.href);
+            const rotate = i % 2 === 0 ? '-rotate-[0.3deg]' : 'rotate-[0.2deg]';
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={`
+                  font-display text-[22px] leading-none
+                  border-2 border-ink rounded-[10px]
+                  px-3.5 py-1
+                  ${isActive ? 'bg-paper font-bold' : 'bg-paper-2 text-ink'}
+                  ${rotate}
+                  transition-transform duration-150 hover:-translate-y-0.5 hover:bg-paper
+                `}
+                aria-current={isActive ? 'page' : undefined}
+              >
+                {isActive && <span className="text-accent" aria-hidden="true">{'\u25B8 '}</span>}
+                {link.label}
+              </Link>
+            );
+          })}
+        </nav>
+
+        <div className="ml-auto flex items-center gap-3">
           <ConnectionStatus />
 
           {/* Desktop user info */}
           {user && (
-            <div className="hidden items-center gap-3 sm:flex">
+            <div className="hidden items-center gap-2 sm:flex font-mono text-[13px] text-ink-soft">
               <Link
                 href={isGuest ? '/lobby' : '/profile'}
-                className="flex items-center gap-2 text-sm font-medium hover:text-brand-600 transition-colors"
+                className="flex items-center gap-1.5 hover:text-ink transition-colors"
               >
-                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gold-100 text-xs font-bold text-gold-800 dark:bg-gold-900 dark:text-gold-200">
-                  {user.displayName.charAt(0).toUpperCase()}
-                </span>
+                <span className="font-display text-ink">{'\u{1F464}'}</span>
                 <span className="hidden lg:inline">{user.displayName}</span>
-                {isGuest && (
-                  <span className="rounded-full bg-brand-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-brand-700 dark:bg-brand-900 dark:text-brand-300">
-                    Guest
-                  </span>
-                )}
+                {isGuest && <span className="pill gray ml-1 text-[11px]">guest</span>}
               </Link>
+              <span aria-hidden="true">{'\u00B7'}</span>
               <button
                 onClick={handleLogout}
-                className="rounded-lg px-2 py-1 text-sm text-[var(--color-muted)] transition-colors hover:bg-[var(--color-card-bg)] hover:text-[var(--color-foreground)]"
+                className="underline-offset-2 hover:underline hover:text-ink"
               >
-                {isGuest ? 'Exit' : 'Sign Out'}
+                {isGuest ? 'exit' : 'sign out'}
               </button>
             </div>
           )}
 
-          {/* Mobile hamburger button */}
+          {/* Mobile hamburger */}
           <button
             onClick={toggleMobileMenu}
-            className="inline-flex items-center justify-center rounded-lg p-2 sm:hidden hover:bg-[var(--color-card-bg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold-400"
+            className="inline-flex items-center justify-center rounded-md border-2 border-ink bg-paper p-1.5 shadow-sketch-sm sm:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-3"
             aria-label={isMobileMenuOpen ? 'Close menu' : 'Open menu'}
             aria-expanded={isMobileMenuOpen}
           >
@@ -121,13 +141,13 @@ export function AppHeader(): React.JSX.Element {
         </div>
       </div>
 
-      {/* Mobile navigation menu */}
+      {/* Mobile nav */}
       {isMobileMenuOpen && (
         <nav
-          className="border-t-2 border-[var(--color-border)] px-4 py-3 sm:hidden animate-slide-down motion-reduce:animate-none"
+          className="border-t-2 border-ink bg-paper px-4 py-3 animate-slide-down motion-reduce:animate-none sm:hidden"
           aria-label="Mobile navigation"
         >
-          <div className="space-y-1">
+          <div className="space-y-2">
             {navLinks.map((link) => {
               const isActive = pathname.startsWith(link.href);
               return (
@@ -136,10 +156,8 @@ export function AppHeader(): React.JSX.Element {
                   href={link.href}
                   onClick={closeMobileMenu}
                   className={`
-                    block rounded-xl px-4 py-2.5 text-sm font-medium transition-colors
-                    ${isActive
-                      ? 'bg-brand-50 text-brand-700 dark:bg-brand-950 dark:text-brand-300'
-                      : 'text-[var(--color-muted)] hover:bg-[var(--color-card-bg)] hover:text-[var(--color-foreground)]'}
+                    block font-display text-xl border-2 border-ink rounded-md px-3 py-1.5
+                    ${isActive ? 'bg-paper shadow-sketch-sm' : 'bg-paper-2'}
                   `}
                   aria-current={isActive ? 'page' : undefined}
                 >
@@ -149,26 +167,18 @@ export function AppHeader(): React.JSX.Element {
             })}
           </div>
 
-          {/* Mobile user actions */}
           {user && (
-            <div className="mt-3 border-t-2 border-[var(--color-border)] pt-3">
-              <div className="flex items-center gap-2 px-4 py-1">
-                <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gold-100 text-xs font-bold text-gold-800 dark:bg-gold-900 dark:text-gold-200">
-                  {user.displayName.charAt(0).toUpperCase()}
-                </span>
-                <p className="text-sm font-medium">{user.displayName}</p>
-                {isGuest && (
-                  <span className="rounded-full bg-brand-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-brand-700 dark:bg-brand-900 dark:text-brand-300">
-                    Guest
-                  </span>
-                )}
-              </div>
+            <div className="mt-3 border-t-2 border-dashed border-line-soft pt-3">
+              <p className="font-mono text-xs text-ink-soft px-1 mb-1.5">
+                {'\u{1F464} '}{user.displayName}
+                {isGuest && <span className="pill gray ml-2 text-[10px]">guest</span>}
+              </p>
               <button
                 onClick={() => {
                   closeMobileMenu();
                   handleLogout();
                 }}
-                className="mt-1 block w-full rounded-xl px-4 py-2.5 text-left text-sm font-medium text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-950"
+                className="block w-full rounded-md border-2 border-ink bg-accent/10 px-3 py-1.5 text-left font-display text-lg text-accent"
               >
                 {isGuest ? 'Exit' : 'Sign Out'}
               </button>

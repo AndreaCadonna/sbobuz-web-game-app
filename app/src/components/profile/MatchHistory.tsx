@@ -1,7 +1,5 @@
 /**
- * MatchHistory — Displays a paginated list of recent matches.
- *
- * Shows game results, rating changes, and timestamps.
+ * MatchHistory — Sketchy list of recent matches.
  */
 'use client';
 
@@ -16,9 +14,9 @@ const PAGE_SIZE = 15;
 
 type GameResult = 'win' | 'loss';
 
-const RESULT_LABELS: Record<GameResult, { text: string; color: string }> = {
-  win: { text: 'Win', color: 'text-brand-700 dark:text-brand-300 bg-brand-50 dark:bg-brand-950/50 ring-1 ring-brand-200 dark:ring-brand-800' },
-  loss: { text: 'Loss', color: 'text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-950/50 ring-1 ring-red-200 dark:ring-red-800' },
+const RESULT_PILL: Record<GameResult, { text: string; pill: string }> = {
+  win: { text: 'win', pill: 'pill green' },
+  loss: { text: 'loss', pill: 'pill accent' },
 };
 
 function formatDate(isoString: string): string {
@@ -53,8 +51,7 @@ export function MatchHistory(): React.JSX.Element {
       setHasNextPage(false);
       setHasPreviousPage(pageNum > 1);
     } catch (err) {
-      const message =
-        err instanceof ApiError ? err.message : 'Failed to load match history';
+      const message = err instanceof ApiError ? err.message : 'Failed to load match history';
       setError(message);
       logger.warn({ err }, 'Failed to fetch match history');
     } finally {
@@ -70,8 +67,8 @@ export function MatchHistory(): React.JSX.Element {
     return (
       <div className="flex items-center justify-center py-10">
         <div className="flex flex-col items-center gap-2">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand-200 border-t-brand-600" />
-          <span className="text-sm font-medium text-[var(--color-muted)]">Loading history...</span>
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-paper-2 border-t-ink" />
+          <span className="font-body text-sm text-ink-soft">Loading history...</span>
         </div>
       </div>
     );
@@ -79,8 +76,8 @@ export function MatchHistory(): React.JSX.Element {
 
   if (error) {
     return (
-      <div className="rounded-2xl bg-red-50 border border-red-200 p-6 text-center dark:bg-red-950/50 dark:border-red-800" role="alert">
-        <p className="text-sm font-medium text-red-600 dark:text-red-400">{error}</p>
+      <div className="sk sk-alt border-accent text-center" role="alert">
+        <p className="font-body text-sm font-semibold text-accent">{error}</p>
         <Button variant="secondary" size="sm" onClick={() => void fetchHistory(page)} className="mt-2">
           Retry
         </Button>
@@ -90,55 +87,43 @@ export function MatchHistory(): React.JSX.Element {
 
   if (matches.length === 0) {
     return (
-      <div className="rounded-2xl border-2 border-[var(--color-border)] p-8 text-center">
-        <p className="font-medium text-[var(--color-muted)]">No matches played yet.</p>
+      <div className="sk sk-dashed p-8 text-center">
+        <p className="font-body text-ink-soft">No matches played yet.</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <div className="space-y-2">
         {matches.map((match) => {
-          const resultStyle = RESULT_LABELS[match.result];
+          const resultStyle = RESULT_PILL[match.result];
           const ratingPrefix = match.ratingChange >= 0 ? '+' : '';
-
+          const ratingColor = match.ratingChange >= 0 ? 'text-accent-2' : 'text-accent';
           return (
             <div
               key={match.gameId}
-              className="flex flex-col gap-2 rounded-2xl border-2 border-[var(--color-border)] px-4 py-3 hover:bg-[var(--color-card-bg)] hover:border-gold-300/50 transition-all duration-200 sm:flex-row sm:items-center sm:justify-between"
+              className="flex flex-col gap-2 rounded-md border-2 border-ink bg-paper px-3.5 py-2.5 sm:flex-row sm:items-center sm:justify-between"
             >
               <div className="flex items-center gap-3">
-                <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-bold ${resultStyle.color}`}>
-                  {resultStyle.text}
-                </span>
-                <div className="text-sm">
-                  <span className="text-[var(--color-muted)]">
-                    Rating: <span className="font-semibold text-[var(--color-foreground)]">{String(match.ratingAfter)}</span>
-                  </span>
+                <span className={resultStyle.pill}>{resultStyle.text}</span>
+                <div className="font-body text-sm">
+                  <span className="text-ink-soft">rating: </span>
+                  <span className="font-bold">{String(match.ratingAfter)}</span>
                 </div>
               </div>
-
-              <div className="flex items-center gap-4 text-sm">
-                <span
-                  className={`font-mono font-bold ${
-                    match.ratingChange >= 0
-                      ? 'text-brand-600 dark:text-brand-400'
-                      : 'text-red-500 dark:text-red-400'
-                  }`}
-                >
-                  {ratingPrefix}{String(match.ratingChange)}
+              <div className="flex items-center gap-4">
+                <span className={`font-mono text-sm font-bold ${ratingColor}`}>
+                  {ratingPrefix}
+                  {String(match.ratingChange)}
                 </span>
-                <span className="text-xs font-medium text-[var(--color-muted)]">
-                  {formatDate(match.playedAt)}
-                </span>
+                <span className="font-mono text-[11px] text-line-soft">{formatDate(match.playedAt)}</span>
               </div>
             </div>
           );
         })}
       </div>
 
-      {/* Pagination */}
       {(hasPreviousPage || hasNextPage) && (
         <div className="flex items-center justify-between">
           <Button
@@ -147,16 +132,16 @@ export function MatchHistory(): React.JSX.Element {
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={!hasPreviousPage}
           >
-            Previous
+            {'\u2039 '}previous
           </Button>
-          <span className="text-sm font-medium text-[var(--color-muted)]">Page {String(page)}</span>
+          <span className="font-mono text-[11px] uppercase tracking-wider text-ink-soft">page {String(page)}</span>
           <Button
             variant="secondary"
             size="sm"
             onClick={() => setPage((p) => p + 1)}
             disabled={!hasNextPage}
           >
-            Next
+            next {'\u203A'}
           </Button>
         </div>
       )}
